@@ -1,0 +1,11 @@
+{
+  "checks": 2179,
+  "pages": 11,
+  "button_types": 24,
+  "button_actions": 32,
+  "png_count": 193,
+  "errors": [],
+  "font_width_warnings": [],
+  "hardware_tested": false,
+  "visualtft_project_compiled": false
+}

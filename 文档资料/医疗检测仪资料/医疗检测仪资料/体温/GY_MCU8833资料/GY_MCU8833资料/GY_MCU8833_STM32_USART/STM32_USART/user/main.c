@@ -1,0 +1,89 @@
+#include "stm32f10x.h"
+#include "delay.h"
+#include "usart.h"
+#include "string.h"
+#include "LED.h"
+#include "stdio.h"
+/*
+
+Keil: MDK5.10.0.2
+MCU:stm32f103c8
+硬件接法：
+GY-mcu8833---STM32
+1、GY-mcu8833_RX---STM32_TX
+2、STM32_TX---FT232,STM32将数据上传给上位机
+3、GY-mcu8833_TX---STM32_RX，接收模块数据
+软件说明:
+该程序采用串口方式获取模块数据，波特率9600
+模块串口默认输出起始寄存器0x09,输出数量0x42=66，该程序从0x0b开始打印温度数据
+注：中断函数位于stm32f10x_it.c
+联系方式：
+http://shop62474960.taobao.com/?spm=a230r.7195193.1997079397.2.9qa3Ky&v=1
+*/
+int fputc(int ch, FILE *f)
+{
+    while (!(USART1->SR & USART_FLAG_TXE));
+    USART_SendData(USART1, (unsigned char) ch);// USART1 可以换成 USART2 等
+    return (ch);
+}
+static void NVIC_Configuration(void)
+{
+    NVIC_InitTypeDef NVIC_X;
+
+    /* 4个抢占优先级，4个响应优先级 */
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+    /*抢占优先级可打断中断级别低的中断*/
+    /*响应优先级按等级执行*/
+    NVIC_X.NVIC_IRQChannel = USART1_IRQn;//中断向量
+    NVIC_X.NVIC_IRQChannelPreemptionPriority = 0;//抢占优先级
+    NVIC_X.NVIC_IRQChannelSubPriority = 0;//响应优先级
+    NVIC_X.NVIC_IRQChannelCmd = ENABLE;//使能中断响应
+    NVIC_Init(&NVIC_X);
+}
+typedef struct
+{
+    float e;
+    float to;
+    float ta;
+    float bo;
+} gyir;
+int main(void)
+{
+    u8 sum=0,i=0;
+    int16_t data=0;
+    gyir my_ir= {0,0,0,0};
+    delay_init(72);
+    NVIC_Configuration();
+    Usart_Int(9600);
+    delay_ms(300);//等待模块初始化完成
+    while(1)
+    {
+        if(Receive_ok)//串口接收完毕
+        {
+
+            for(sum=0,i=0; i<(usart_rx_data[3]+4); i++) //rgb_data[3]=3
+                sum+=usart_rx_data[i];
+            if(sum==usart_rx_data[i])//校验和判断
+            {
+                float to64[64];
+               
+                printf("\r\n [");
+                for( i=1; i<=64; i++) 
+							{
+                    to64[i-1]=usart_rx_data[i-1+6];//即串口接收到的第6字节数据对应寄存器0x0b
+
+                    printf("%.0f",to64[i-1]);
+                    printf(", ");
+                    if( i%8 == 0 ) printf("\r\n ");
+                }
+               printf("\r\n ]");
+            }
+            else
+            {
+                printf(" sum %d\r\n ",sum);
+                printf(" count %d\r\n ",usart_rx_data[3]+4);
+            }
+            Receive_ok=0;//处理数据完毕标志
+        }
+    }
+}

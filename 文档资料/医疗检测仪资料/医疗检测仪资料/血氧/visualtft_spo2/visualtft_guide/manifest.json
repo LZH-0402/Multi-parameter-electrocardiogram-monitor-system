@@ -1,0 +1,1515 @@
+{
+  "pages": [
+    {
+      "id": 0,
+      "title": "床旁血氧监护",
+      "rows": [
+        {
+          "id": 1,
+          "name": "btn_pause",
+          "selector": "[data-name=\"btn_pause\"]",
+          "type": "图片按钮",
+          "value": "暂停监护",
+          "note": "切换到画面 4；暂停后用 btn_resume 两态图片替换",
+          "x": 16,
+          "y": 396,
+          "w": 183,
+          "h": 68
+        },
+        {
+          "id": 2,
+          "name": "btn_trend",
+          "selector": "[data-name=\"btn_trend\"]",
+          "type": "图片按钮",
+          "value": "趋势",
+          "note": "切换到画面 1",
+          "x": 211,
+          "y": 396,
+          "w": 183,
+          "h": 68
+        },
+        {
+          "id": 3,
+          "name": "btn_alarm",
+          "selector": "[data-name=\"btn_alarm\"]",
+          "type": "图片按钮",
+          "value": "报警记录",
+          "note": "切换到画面 2",
+          "x": 406,
+          "y": 396,
+          "w": 183,
+          "h": 68
+        },
+        {
+          "id": 4,
+          "name": "btn_settings",
+          "selector": "[data-name=\"btn_settings\"]",
+          "type": "图片按钮",
+          "value": "设置",
+          "note": "切换到画面 3",
+          "x": 601,
+          "y": 396,
+          "w": 183,
+          "h": 68
+        },
+        {
+          "id": 10,
+          "name": "txt_spo2",
+          "selector": ".spo2 .reading strong",
+          "type": "文本",
+          "value": "98",
+          "note": "实际初始化为 --；青蓝；数字高度约 72 px",
+          "x": 35,
+          "y": 114,
+          "w": 164,
+          "h": 74
+        },
+        {
+          "id": 11,
+          "name": "txt_pr",
+          "selector": ".pr .reading strong",
+          "type": "文本",
+          "value": "72",
+          "note": "实际初始化为 --；绿色；数字高度约 72 px",
+          "x": 427,
+          "y": 114,
+          "w": 164,
+          "h": 74
+        },
+        {
+          "id": 12,
+          "name": "txt_valid",
+          "selector": ".spo2 .chip",
+          "type": "文本",
+          "value": "测量有效",
+          "note": "状态由 MCU 回写，暂停/无效时改变文字和颜色",
+          "x": 307,
+          "y": 88,
+          "w": 66,
+          "h": 22
+        },
+        {
+          "id": 13,
+          "name": "txt_spo2_limits",
+          "selector": ".spo2 .measure-meta span:first-child",
+          "type": "文本",
+          "value": "报警限值 90–100 %",
+          "note": "与设备已确认的报警限值同步",
+          "x": 35,
+          "y": 192,
+          "w": 212,
+          "h": 20
+        },
+        {
+          "id": 14,
+          "name": "txt_spo2_state",
+          "selector": ".spo2 .measure-meta span:last-child",
+          "type": "文本",
+          "value": "稳定",
+          "note": "无效时显示等待信号",
+          "x": 270,
+          "y": 192,
+          "w": 103,
+          "h": 20
+        },
+        {
+          "id": 15,
+          "name": "txt_pr_limit",
+          "selector": ".pr .measure-meta span:first-child",
+          "type": "文本",
+          "value": "报警高限 120 bpm",
+          "note": "与设备已确认高限同步",
+          "x": 427,
+          "y": 192,
+          "w": 210,
+          "h": 20
+        },
+        {
+          "id": 16,
+          "name": "txt_pr_state",
+          "selector": ".pr .measure-meta span:last-child",
+          "type": "文本",
+          "value": "脉搏规则",
+          "note": "文本表达状态；图标为可选装饰",
+          "x": 650,
+          "y": 192,
+          "w": 115,
+          "h": 20
+        },
+        {
+          "id": 17,
+          "name": "txt_quality",
+          "selector": ".signal b",
+          "type": "文本",
+          "value": "92",
+          "note": "设备质量值；无效时 --",
+          "x": 686,
+          "y": 244,
+          "w": 40,
+          "h": 24
+        },
+        {
+          "id": 18,
+          "name": "icon_quality",
+          "selector": ".quality-bars",
+          "type": "图标/图片",
+          "value": "5 格",
+          "note": "按质量等级切换图片",
+          "x": 735,
+          "y": 247,
+          "w": 32,
+          "h": 18
+        },
+        {
+          "id": 19,
+          "name": "graph_ppg",
+          "selector": ".wave-svg",
+          "type": "曲线",
+          "value": "示例 PPG",
+          "note": "实时点由 MCU 发送；不要导入示例波形作为实时曲线",
+          "x": 29,
+          "y": 272,
+          "w": 742,
+          "h": 78
+        },
+        {
+          "id": 20,
+          "name": "txt_capture_state",
+          "selector": ".wave-bottom span:first-child",
+          "type": "文本",
+          "value": "脉搏波采集中",
+          "note": "暂停时替换状态文字",
+          "x": 33,
+          "y": 355,
+          "w": 390,
+          "h": 20
+        },
+        {
+          "id": 21,
+          "name": "txt_duration",
+          "selector": ".wave-bottom span:last-child",
+          "type": "文本",
+          "value": "监护时间 00:23:18",
+          "note": "计时由 MCU 更新",
+          "x": 540,
+          "y": 355,
+          "w": 227,
+          "h": 20
+        },
+        {
+          "id": 90,
+          "name": "txt_bed",
+          "selector": ".bed",
+          "type": "文本",
+          "value": "床位 01",
+          "note": "在同一位置添加床位文字；可省略床形装饰",
+          "x": 160,
+          "y": 16,
+          "w": 98,
+          "h": 23
+        },
+        {
+          "id": 91,
+          "name": "txt_probe_header",
+          "selector": ".header-status",
+          "type": "文本",
+          "value": "探头已接入",
+          "note": "按下面导出的子区域放置；不占用时钟范围",
+          "x": 608,
+          "y": 16,
+          "w": 92,
+          "h": 23
+        },
+        {
+          "id": 92,
+          "name": "txt_clock",
+          "selector": ".clock",
+          "type": "RTC/文本",
+          "value": "14:32:08",
+          "note": "RTC 配置或 MCU 定时写入",
+          "x": 720,
+          "y": 16,
+          "w": 60,
+          "h": 23
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "title": "趋势分析",
+      "rows": [
+        {
+          "id": 1,
+          "name": "btn_range_30",
+          "selector": "[data-name=\"btn_range_30\"]",
+          "type": "开关按钮",
+          "value": "30 分钟",
+          "note": "与 2、3 互斥；初始选中",
+          "x": 115,
+          "y": 80,
+          "w": 122,
+          "h": 48
+        },
+        {
+          "id": 2,
+          "name": "btn_range_2h",
+          "selector": "[data-name=\"btn_range_2h\"]",
+          "type": "开关按钮",
+          "value": "2 小时",
+          "note": "选中后请求对应历史数据",
+          "x": 247,
+          "y": 80,
+          "w": 122,
+          "h": 48
+        },
+        {
+          "id": 3,
+          "name": "btn_range_8h",
+          "selector": "[data-name=\"btn_range_8h\"]",
+          "type": "开关按钮",
+          "value": "8 小时",
+          "note": "选中后请求对应历史数据",
+          "x": 379,
+          "y": 80,
+          "w": 122,
+          "h": 48
+        },
+        {
+          "id": 4,
+          "name": "btn_back",
+          "selector": "[data-name=\"btn_back\"]",
+          "type": "图片按钮",
+          "value": "返回主测量",
+          "note": "切换画面 0",
+          "x": 16,
+          "y": 408,
+          "w": 176,
+          "h": 56
+        },
+        {
+          "id": 10,
+          "name": "txt_last_spo2",
+          "selector": ".trend-metric.cyan strong",
+          "type": "文本",
+          "value": "98",
+          "note": "最近有效值；青蓝",
+          "x": 35,
+          "y": 190,
+          "w": 62,
+          "h": 42
+        },
+        {
+          "id": 11,
+          "name": "txt_last_pr",
+          "selector": ".trend-metric.green strong",
+          "type": "文本",
+          "value": "72",
+          "note": "最近有效值；绿",
+          "x": 35,
+          "y": 299,
+          "w": 62,
+          "h": 42
+        },
+        {
+          "id": 12,
+          "name": "graph_trend",
+          "selector": ".trend-graph",
+          "type": "曲线区域",
+          "value": "双分区趋势",
+          "note": "该区域按正文分成 2 个历史曲线控件；不要把不同单位混用一个量程",
+          "x": 161,
+          "y": 161,
+          "w": 602,
+          "h": 216
+        },
+        {
+          "id": 13,
+          "name": "txt_period",
+          "selector": ".footer-note",
+          "type": "文本",
+          "value": "记录时段 14:02–14:32",
+          "note": "随时段和实际时间更新",
+          "x": 480,
+          "y": 426,
+          "w": 304,
+          "h": 21
+        },
+        {
+          "id": 90,
+          "name": "txt_bed",
+          "selector": ".bed",
+          "type": "文本",
+          "value": "床位 01",
+          "note": "在同一位置添加床位文字；可省略床形装饰",
+          "x": 119,
+          "y": 16,
+          "w": 98,
+          "h": 23
+        },
+        {
+          "id": 91,
+          "name": "txt_probe_header",
+          "selector": ".header-status",
+          "type": "文本",
+          "value": "探头已接入",
+          "note": "按下面导出的子区域放置；不占用时钟范围",
+          "x": 608,
+          "y": 16,
+          "w": 92,
+          "h": 23
+        },
+        {
+          "id": 92,
+          "name": "txt_clock",
+          "selector": ".clock",
+          "type": "RTC/文本",
+          "value": "14:32:08",
+          "note": "RTC 配置或 MCU 定时写入",
+          "x": 720,
+          "y": 16,
+          "w": 60,
+          "h": 23
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "报警记录",
+      "rows": [
+        {
+          "id": 1,
+          "name": "btn_clear",
+          "selector": "[data-name=\"btn_clear\"]",
+          "type": "图片按钮",
+          "value": "清空记录",
+          "note": "切换到本指南新增画面 6",
+          "x": 634,
+          "y": 74,
+          "w": 150,
+          "h": 52
+        },
+        {
+          "id": 2,
+          "name": "btn_back",
+          "selector": "[data-name=\"btn_back\"]",
+          "type": "图片按钮",
+          "value": "返回主测量",
+          "note": "切换画面 0",
+          "x": 16,
+          "y": 408,
+          "w": 176,
+          "h": 56
+        },
+        {
+          "id": 3,
+          "name": "row_alarm_1",
+          "selector": "[data-name=\"row_alarm_1\"]",
+          "type": "记录行热区",
+          "value": "记录 1",
+          "note": "选中记录后进入画面 5",
+          "x": 17,
+          "y": 173,
+          "w": 766,
+          "h": 53
+        },
+        {
+          "id": 4,
+          "name": "row_alarm_2",
+          "selector": "[data-name=\"row_alarm_2\"]",
+          "type": "记录行热区",
+          "value": "记录 2",
+          "note": "同上，记录索引 1",
+          "x": 17,
+          "y": 226,
+          "w": 766,
+          "h": 53
+        },
+        {
+          "id": 5,
+          "name": "row_alarm_3",
+          "selector": "[data-name=\"row_alarm_3\"]",
+          "type": "记录行热区",
+          "value": "记录 3",
+          "note": "同上，记录索引 2",
+          "x": 17,
+          "y": 279,
+          "w": 766,
+          "h": 53
+        },
+        {
+          "id": 6,
+          "name": "row_alarm_4",
+          "selector": "[data-name=\"row_alarm_4\"]",
+          "type": "记录行热区",
+          "value": "记录 4",
+          "note": "同上，记录索引 3",
+          "x": 17,
+          "y": 332,
+          "w": 766,
+          "h": 53
+        },
+        {
+          "id": 10,
+          "name": "txt_event_count",
+          "selector": ".alarm-count .chip",
+          "type": "文本",
+          "value": "4 条",
+          "note": "由记录总数回写",
+          "x": 96,
+          "y": 88,
+          "w": 43,
+          "h": 24
+        },
+        {
+          "id": 90,
+          "name": "txt_bed",
+          "selector": ".bed",
+          "type": "文本",
+          "value": "床位 01",
+          "note": "在同一位置添加床位文字；可省略床形装饰",
+          "x": 119,
+          "y": 16,
+          "w": 98,
+          "h": 23
+        },
+        {
+          "id": 91,
+          "name": "txt_probe_header",
+          "selector": ".header-status",
+          "type": "文本",
+          "value": "探头已接入",
+          "note": "按下面导出的子区域放置；不占用时钟范围",
+          "x": 608,
+          "y": 16,
+          "w": 92,
+          "h": 23
+        },
+        {
+          "id": 92,
+          "name": "txt_clock",
+          "selector": ".clock",
+          "type": "RTC/文本",
+          "value": "14:32:08",
+          "note": "RTC 配置或 MCU 定时写入",
+          "x": 720,
+          "y": 16,
+          "w": 60,
+          "h": 23
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "监护设置",
+      "rows": [
+        {
+          "id": 1,
+          "name": "txt_spo2_low",
+          "selector": ".number-control.cyan",
+          "type": "可输入文本区域",
+          "value": "90",
+          "note": "使用原生文本控件+系统小键盘；文字另见内框坐标",
+          "x": 249,
+          "y": 145,
+          "w": 124,
+          "h": 56
+        },
+        {
+          "id": 2,
+          "name": "txt_pr_high",
+          "selector": ".number-control.green",
+          "type": "可输入文本区域",
+          "value": "120",
+          "note": "使用原生文本控件+系统小键盘",
+          "x": 249,
+          "y": 251,
+          "w": 124,
+          "h": 56
+        },
+        {
+          "id": 3,
+          "name": "btn_alarm_sound",
+          "selector": "[data-name=\"btn_alarm_sound\"]",
+          "type": "开关按钮",
+          "value": "开启",
+          "note": "常驻开启/关闭状态与手指按压态分开",
+          "x": 641,
+          "y": 257,
+          "w": 124,
+          "h": 56
+        },
+        {
+          "id": 4,
+          "name": "btn_back",
+          "selector": "[data-name=\"btn_back\"]",
+          "type": "图片按钮",
+          "value": "返回主测量",
+          "note": "切换画面 0",
+          "x": 16,
+          "y": 408,
+          "w": 176,
+          "h": 56
+        },
+        {
+          "id": 10,
+          "name": "bar_brightness",
+          "selector": "#brightness",
+          "type": "进度条区域",
+          "value": "80",
+          "note": "水平亮度条；11 为关联滑块，连续 ID",
+          "x": 457,
+          "y": 172,
+          "w": 278,
+          "h": 48
+        },
+        {
+          "id": 11,
+          "name": "slider_brightness",
+          "selector": "#brightness",
+          "type": "滑块区域",
+          "value": "80",
+          "note": "与 10 的视觉层重叠是有意关联；热区高 48",
+          "x": 457,
+          "y": 172,
+          "w": 278,
+          "h": 48
+        },
+        {
+          "id": 12,
+          "name": "txt_brightness",
+          "selector": "#brightness-value",
+          "type": "文本",
+          "value": "80%",
+          "note": "拖动后更新数值；硬件亮度还需命令",
+          "x": 697,
+          "y": 142,
+          "w": 68,
+          "h": 30
+        },
+        {
+          "id": 13,
+          "name": "txt_sound_state",
+          "selector": ".settings-panel:nth-child(2) .panel-caption",
+          "type": "文本",
+          "value": "声音提示已开启",
+          "note": "关闭时改成黄色提示",
+          "x": 427,
+          "y": 337,
+          "w": 338,
+          "h": 31
+        },
+        {
+          "id": 90,
+          "name": "txt_bed",
+          "selector": ".bed",
+          "type": "文本",
+          "value": "床位 01",
+          "note": "在同一位置添加床位文字；可省略床形装饰",
+          "x": 119,
+          "y": 16,
+          "w": 98,
+          "h": 23
+        },
+        {
+          "id": 91,
+          "name": "txt_probe_header",
+          "selector": ".header-status",
+          "type": "文本",
+          "value": "探头已接入",
+          "note": "按下面导出的子区域放置；不占用时钟范围",
+          "x": 608,
+          "y": 16,
+          "w": 92,
+          "h": 23
+        },
+        {
+          "id": 92,
+          "name": "txt_clock",
+          "selector": ".clock",
+          "type": "RTC/文本",
+          "value": "14:32:08",
+          "note": "RTC 配置或 MCU 定时写入",
+          "x": 720,
+          "y": 16,
+          "w": 60,
+          "h": 23
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "暂停监护",
+      "rows": [
+        {
+          "id": 1,
+          "name": "btn_cancel_pause",
+          "selector": "[data-name=\"btn_cancel_pause\"]",
+          "type": "图片按钮",
+          "value": "取消",
+          "note": "切换画面 0，不改变监护状态",
+          "x": 321,
+          "y": 296,
+          "w": 176,
+          "h": 56
+        },
+        {
+          "id": 2,
+          "name": "btn_confirm_pause",
+          "selector": "[data-name=\"btn_confirm_pause\"]",
+          "type": "图片按钮",
+          "value": "确认暂停",
+          "note": "发送暂停请求，设备确认后回画面 0 暂停态",
+          "x": 513,
+          "y": 296,
+          "w": 176,
+          "h": 56
+        },
+        {
+          "id": 3,
+          "name": "btn_back",
+          "selector": "[data-name=\"btn_back\"]",
+          "type": "图片按钮",
+          "value": "返回主测量",
+          "note": "切换画面 0，不改变状态",
+          "x": 16,
+          "y": 408,
+          "w": 176,
+          "h": 56
+        },
+        {
+          "id": 10,
+          "name": "txt_pause_context",
+          "selector": ".pause-heading p",
+          "type": "文本",
+          "value": "当前床位 01 · 血氧与脉率监护",
+          "note": "床位变化时同步",
+          "x": 179,
+          "y": 153,
+          "w": 186,
+          "h": 21
+        },
+        {
+          "id": 90,
+          "name": "txt_bed",
+          "selector": ".bed",
+          "type": "文本",
+          "value": "床位 01",
+          "note": "在同一位置添加床位文字；可省略床形装饰",
+          "x": 119,
+          "y": 16,
+          "w": 98,
+          "h": 23
+        },
+        {
+          "id": 91,
+          "name": "txt_probe_header",
+          "selector": ".header-status",
+          "type": "文本",
+          "value": "探头已接入",
+          "note": "按下面导出的子区域放置；不占用时钟范围",
+          "x": 608,
+          "y": 16,
+          "w": 92,
+          "h": 23
+        },
+        {
+          "id": 92,
+          "name": "txt_clock",
+          "selector": ".clock",
+          "type": "RTC/文本",
+          "value": "14:32:08",
+          "note": "RTC 配置或 MCU 定时写入",
+          "x": 720,
+          "y": 16,
+          "w": 60,
+          "h": 23
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "报警与探头状态",
+      "rows": [
+        {
+          "id": 1,
+          "name": "btn_back",
+          "selector": "[data-name=\"btn_back\"]",
+          "type": "图片按钮",
+          "value": "返回主测量/返回报警记录",
+          "note": "按来源返回 0 或 2",
+          "x": 16,
+          "y": 408,
+          "w": 176,
+          "h": 56
+        },
+        {
+          "id": 10,
+          "name": "txt_detail_title",
+          "selector": ".detail-left .panel-title",
+          "type": "文本",
+          "value": "当前状态",
+          "note": "历史记录模式显示事件详情",
+          "x": 35,
+          "y": 91,
+          "w": 338,
+          "h": 26
+        },
+        {
+          "id": 11,
+          "name": "txt_detail_name",
+          "selector": ".detail-status",
+          "type": "文本/图标组合",
+          "value": "信号偏弱",
+          "note": "按事件显示名称和提示/报警颜色",
+          "x": 35,
+          "y": 138,
+          "w": 338,
+          "h": 44
+        },
+        {
+          "id": 12,
+          "name": "txt_detail_advice",
+          "selector": ".detail-advice",
+          "type": "多行文本",
+          "value": "请检查探头佩戴位置，并保持手指静止。",
+          "note": "历史模式显示事件时间与状态",
+          "x": 35,
+          "y": 197,
+          "w": 338,
+          "h": 61
+        },
+        {
+          "id": 13,
+          "name": "txt_probe",
+          "selector": ".probe-state span:last-child",
+          "type": "文本",
+          "value": "已接入",
+          "note": "来自当前设备状态",
+          "x": 302,
+          "y": 292,
+          "w": 71,
+          "h": 23
+        },
+        {
+          "id": 14,
+          "name": "txt_update",
+          "selector": ".detail-time",
+          "type": "文本",
+          "value": "状态更新时间 14:32:08",
+          "note": "当前状态时间或历史记录标记",
+          "x": 35,
+          "y": 331,
+          "w": 338,
+          "h": 20
+        },
+        {
+          "id": 15,
+          "name": "txt_quality",
+          "selector": ".quality-title strong",
+          "type": "文本",
+          "value": "42",
+          "note": "质量评分，不是血氧值",
+          "x": 690,
+          "y": 139,
+          "w": 36,
+          "h": 43
+        },
+        {
+          "id": 16,
+          "name": "bar_quality",
+          "selector": ".quality-track",
+          "type": "进度条",
+          "value": "42",
+          "note": "0–100，仅显示，不允许拖动",
+          "x": 427,
+          "y": 192,
+          "w": 338,
+          "h": 7
+        },
+        {
+          "id": 17,
+          "name": "txt_last_spo2",
+          "selector": ".diagnostic-row:nth-of-type(4) b",
+          "type": "文本",
+          "value": "98 %",
+          "note": "最近有效值",
+          "x": 648,
+          "y": 226,
+          "w": 117,
+          "h": 30
+        },
+        {
+          "id": 18,
+          "name": "txt_last_pr",
+          "selector": ".diagnostic-row:nth-of-type(5) b",
+          "type": "文本",
+          "value": "72 bpm",
+          "note": "最近有效值",
+          "x": 648,
+          "y": 273,
+          "w": 117,
+          "h": 30
+        },
+        {
+          "id": 19,
+          "name": "txt_valid_time",
+          "selector": ".diagnostic-caption",
+          "type": "文本",
+          "value": "最近有效时间 14:28:10",
+          "note": "与历史值成组更新",
+          "x": 427,
+          "y": 311,
+          "w": 338,
+          "h": 32
+        },
+        {
+          "id": 20,
+          "name": "txt_footer",
+          "selector": ".footer-note",
+          "type": "文本",
+          "value": "等待稳定信号",
+          "note": "按当前/历史模式显示",
+          "x": 370,
+          "y": 426,
+          "w": 414,
+          "h": 21
+        },
+        {
+          "id": 90,
+          "name": "txt_bed",
+          "selector": ".bed",
+          "type": "文本",
+          "value": "床位 01",
+          "note": "在同一位置添加床位文字；可省略床形装饰",
+          "x": 181,
+          "y": 16,
+          "w": 98,
+          "h": 23
+        },
+        {
+          "id": 91,
+          "name": "txt_probe_header",
+          "selector": ".header-status",
+          "type": "文本",
+          "value": "探头已接入",
+          "note": "按下面导出的子区域放置；不占用时钟范围",
+          "x": 608,
+          "y": 16,
+          "w": 92,
+          "h": 23
+        },
+        {
+          "id": 92,
+          "name": "txt_clock",
+          "selector": ".clock",
+          "type": "RTC/文本",
+          "value": "14:32:08",
+          "note": "RTC 配置或 MCU 定时写入",
+          "x": 720,
+          "y": 16,
+          "w": 60,
+          "h": 23
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "name": "btn_pause",
+      "label": "暂停监护",
+      "w": 183,
+      "h": 68,
+      "group": "按钮"
+    },
+    {
+      "name": "btn_trend",
+      "label": "趋势",
+      "w": 183,
+      "h": 68,
+      "group": "按钮"
+    },
+    {
+      "name": "btn_alarm",
+      "label": "报警记录",
+      "w": 183,
+      "h": 68,
+      "group": "按钮"
+    },
+    {
+      "name": "btn_settings",
+      "label": "设置",
+      "w": 183,
+      "h": 68,
+      "group": "按钮"
+    },
+    {
+      "name": "btn_back",
+      "label": "返回主测量",
+      "w": 176,
+      "h": 56,
+      "group": "按钮"
+    },
+    {
+      "name": "btn_confirm",
+      "label": "确认暂停",
+      "w": 176,
+      "h": 56,
+      "group": "按钮"
+    },
+    {
+      "name": "btn_cancel",
+      "label": "取消",
+      "w": 176,
+      "h": 56,
+      "group": "按钮"
+    },
+    {
+      "name": "btn_clear",
+      "label": "清空记录",
+      "w": 150,
+      "h": 52,
+      "group": "按钮"
+    },
+    {
+      "name": "btn_resume",
+      "label": "恢复监护",
+      "w": 183,
+      "h": 68,
+      "group": "按钮"
+    },
+    {
+      "name": "btn_range_30",
+      "label": "30 分钟",
+      "w": 122,
+      "h": 48,
+      "group": "趋势选项"
+    },
+    {
+      "name": "btn_range_2h",
+      "label": "2 小时",
+      "w": 122,
+      "h": 48,
+      "group": "趋势选项"
+    },
+    {
+      "name": "btn_range_8h",
+      "label": "8 小时",
+      "w": 122,
+      "h": 48,
+      "group": "趋势选项"
+    },
+    {
+      "name": "btn_back_alarm",
+      "label": "返回报警记录",
+      "w": 176,
+      "h": 56,
+      "group": "按钮"
+    },
+    {
+      "name": "btn_confirm_clear",
+      "label": "确认清空",
+      "w": 176,
+      "h": 56,
+      "group": "按钮"
+    },
+    {
+      "name": "btn_sound_on",
+      "label": "报警声音：开启",
+      "w": 124,
+      "h": 56,
+      "group": "声音状态"
+    },
+    {
+      "name": "btn_sound_off",
+      "label": "报警声音：关闭",
+      "w": 124,
+      "h": 56,
+      "group": "声音状态"
+    },
+    {
+      "name": "field_spo2",
+      "label": "SpO₂ 输入框底图",
+      "w": 124,
+      "h": 56,
+      "group": "可选输入框"
+    },
+    {
+      "name": "field_pr",
+      "label": "PR 输入框底图",
+      "w": 124,
+      "h": 56,
+      "group": "可选输入框"
+    },
+    {
+      "name": "row_alarm",
+      "label": "报警记录行底图",
+      "w": 766,
+      "h": 53,
+      "group": "记录行"
+    }
+  ],
+  "pngs": [
+    {
+      "file": "backgrounds/bg_0.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 16688
+    },
+    {
+      "file": "backgrounds/bg_1.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 14358
+    },
+    {
+      "file": "backgrounds/bg_2.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 10682
+    },
+    {
+      "file": "backgrounds/bg_3.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 20327
+    },
+    {
+      "file": "backgrounds/bg_4.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 16209
+    },
+    {
+      "file": "backgrounds/bg_5.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 15274
+    },
+    {
+      "file": "backgrounds/bg_6.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 19323
+    },
+    {
+      "file": "buttons/btn_alarm_down.png",
+      "width": 183,
+      "height": 68,
+      "bytes": 3397
+    },
+    {
+      "file": "buttons/btn_alarm_up.png",
+      "width": 183,
+      "height": 68,
+      "bytes": 3461
+    },
+    {
+      "file": "buttons/btn_back_alarm_down.png",
+      "width": 176,
+      "height": 56,
+      "bytes": 3807
+    },
+    {
+      "file": "buttons/btn_back_alarm_up.png",
+      "width": 176,
+      "height": 56,
+      "bytes": 3891
+    },
+    {
+      "file": "buttons/btn_back_down.png",
+      "width": 176,
+      "height": 56,
+      "bytes": 2973
+    },
+    {
+      "file": "buttons/btn_back_up.png",
+      "width": 176,
+      "height": 56,
+      "bytes": 3059
+    },
+    {
+      "file": "buttons/btn_cancel_down.png",
+      "width": 176,
+      "height": 56,
+      "bytes": 2161
+    },
+    {
+      "file": "buttons/btn_cancel_up.png",
+      "width": 176,
+      "height": 56,
+      "bytes": 2202
+    },
+    {
+      "file": "buttons/btn_clear_down.png",
+      "width": 150,
+      "height": 52,
+      "bytes": 3004
+    },
+    {
+      "file": "buttons/btn_clear_up.png",
+      "width": 150,
+      "height": 52,
+      "bytes": 3031
+    },
+    {
+      "file": "buttons/btn_confirm_clear_down.png",
+      "width": 176,
+      "height": 56,
+      "bytes": 3353
+    },
+    {
+      "file": "buttons/btn_confirm_clear_up.png",
+      "width": 176,
+      "height": 56,
+      "bytes": 3375
+    },
+    {
+      "file": "buttons/btn_confirm_down.png",
+      "width": 176,
+      "height": 56,
+      "bytes": 2908
+    },
+    {
+      "file": "buttons/btn_confirm_up.png",
+      "width": 176,
+      "height": 56,
+      "bytes": 2968
+    },
+    {
+      "file": "buttons/btn_pause_down.png",
+      "width": 183,
+      "height": 68,
+      "bytes": 2792
+    },
+    {
+      "file": "buttons/btn_pause_up.png",
+      "width": 183,
+      "height": 68,
+      "bytes": 2811
+    },
+    {
+      "file": "buttons/btn_range_2h_down.png",
+      "width": 122,
+      "height": 48,
+      "bytes": 1681
+    },
+    {
+      "file": "buttons/btn_range_2h_selected.png",
+      "width": 122,
+      "height": 48,
+      "bytes": 1631
+    },
+    {
+      "file": "buttons/btn_range_2h_up.png",
+      "width": 122,
+      "height": 48,
+      "bytes": 1717
+    },
+    {
+      "file": "buttons/btn_range_30_down.png",
+      "width": 122,
+      "height": 48,
+      "bytes": 2336
+    },
+    {
+      "file": "buttons/btn_range_30_selected.png",
+      "width": 122,
+      "height": 48,
+      "bytes": 2262
+    },
+    {
+      "file": "buttons/btn_range_30_up.png",
+      "width": 122,
+      "height": 48,
+      "bytes": 2358
+    },
+    {
+      "file": "buttons/btn_range_8h_down.png",
+      "width": 122,
+      "height": 48,
+      "bytes": 1827
+    },
+    {
+      "file": "buttons/btn_range_8h_selected.png",
+      "width": 122,
+      "height": 48,
+      "bytes": 1755
+    },
+    {
+      "file": "buttons/btn_range_8h_up.png",
+      "width": 122,
+      "height": 48,
+      "bytes": 1858
+    },
+    {
+      "file": "buttons/btn_resume_down.png",
+      "width": 183,
+      "height": 68,
+      "bytes": 3163
+    },
+    {
+      "file": "buttons/btn_resume_up.png",
+      "width": 183,
+      "height": 68,
+      "bytes": 3205
+    },
+    {
+      "file": "buttons/btn_settings_down.png",
+      "width": 183,
+      "height": 68,
+      "bytes": 2298
+    },
+    {
+      "file": "buttons/btn_settings_up.png",
+      "width": 183,
+      "height": 68,
+      "bytes": 2368
+    },
+    {
+      "file": "buttons/btn_sound_off_down.png",
+      "width": 124,
+      "height": 56,
+      "bytes": 1484
+    },
+    {
+      "file": "buttons/btn_sound_off_up.png",
+      "width": 124,
+      "height": 56,
+      "bytes": 1452
+    },
+    {
+      "file": "buttons/btn_sound_on_down.png",
+      "width": 124,
+      "height": 56,
+      "bytes": 1291
+    },
+    {
+      "file": "buttons/btn_sound_on_up.png",
+      "width": 124,
+      "height": 56,
+      "bytes": 1273
+    },
+    {
+      "file": "buttons/btn_trend_down.png",
+      "width": 183,
+      "height": 68,
+      "bytes": 2475
+    },
+    {
+      "file": "buttons/btn_trend_up.png",
+      "width": 183,
+      "height": 68,
+      "bytes": 2525
+    },
+    {
+      "file": "buttons/field_pr_down.png",
+      "width": 124,
+      "height": 56,
+      "bytes": 529
+    },
+    {
+      "file": "buttons/field_pr_up.png",
+      "width": 124,
+      "height": 56,
+      "bytes": 533
+    },
+    {
+      "file": "buttons/field_spo2_down.png",
+      "width": 124,
+      "height": 56,
+      "bytes": 519
+    },
+    {
+      "file": "buttons/field_spo2_up.png",
+      "width": 124,
+      "height": 56,
+      "bytes": 533
+    },
+    {
+      "file": "buttons/quality_0.png",
+      "width": 34,
+      "height": 18,
+      "bytes": 198
+    },
+    {
+      "file": "buttons/quality_1.png",
+      "width": 34,
+      "height": 18,
+      "bytes": 220
+    },
+    {
+      "file": "buttons/quality_2.png",
+      "width": 34,
+      "height": 18,
+      "bytes": 221
+    },
+    {
+      "file": "buttons/quality_3.png",
+      "width": 34,
+      "height": 18,
+      "bytes": 222
+    },
+    {
+      "file": "buttons/quality_4.png",
+      "width": 34,
+      "height": 18,
+      "bytes": 221
+    },
+    {
+      "file": "buttons/quality_5.png",
+      "width": 34,
+      "height": 18,
+      "bytes": 198
+    },
+    {
+      "file": "buttons/row_alarm_down.png",
+      "width": 766,
+      "height": 53,
+      "bytes": 336
+    },
+    {
+      "file": "buttons/row_alarm_up.png",
+      "width": 766,
+      "height": 53,
+      "bytes": 336
+    },
+    {
+      "file": "buttons/slider_thumb.png",
+      "width": 18,
+      "height": 18,
+      "bytes": 449
+    },
+    {
+      "file": "states/alarm_empty.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 20971
+    },
+    {
+      "file": "states/brightness_60.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 31705
+    },
+    {
+      "file": "states/clear_confirm.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 31561
+    },
+    {
+      "file": "states/event_1.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 38100
+    },
+    {
+      "file": "states/event_2.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 40130
+    },
+    {
+      "file": "states/event_3.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 39244
+    },
+    {
+      "file": "states/event_4.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 37151
+    },
+    {
+      "file": "states/main_paused.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 37878
+    },
+    {
+      "file": "states/page_0.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 48723
+    },
+    {
+      "file": "states/page_1.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 33284
+    },
+    {
+      "file": "states/page_2.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 33217
+    },
+    {
+      "file": "states/page_3.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 31721
+    },
+    {
+      "file": "states/page_4.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 27731
+    },
+    {
+      "file": "states/page_5.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 37413
+    },
+    {
+      "file": "states/pr_130.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 31739
+    },
+    {
+      "file": "states/sound_off.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 31944
+    },
+    {
+      "file": "states/spo2_92.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 31655
+    },
+    {
+      "file": "states/trend_2h.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 33996
+    },
+    {
+      "file": "states/trend_8h.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 34297
+    },
+    {
+      "file": "illustrations/button_atlas.png",
+      "width": 1040,
+      "height": 3070,
+      "bytes": 163414
+    },
+    {
+      "file": "illustrations/pr_keyboard.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 34702
+    },
+    {
+      "file": "illustrations/spo2_keyboard.png",
+      "width": 800,
+      "height": 480,
+      "bytes": 35202
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+.\obj\hw_config.o: ..\src\hw_config.c
+.\obj\hw_config.o: ..\inc\stm32f4xx_it.h
+.\obj\hw_config.o: ..\..\..\Libraries\CMSIS\Device\STM32F4xx\Include\stm32f4xx.h
+.\obj\hw_config.o: ..\..\..\Libraries\CMSIS\Core\CM4\core_cm4.h
+.\obj\hw_config.o: F:\Program Files\Keil_v514\ARM\ARMCC\Bin\..\include\stdint.h
+.\obj\hw_config.o: ..\..\..\Libraries\CMSIS\Core\CM4\core_cmInstr.h
+.\obj\hw_config.o: ..\..\..\Libraries\CMSIS\Core\CM4\core_cmFunc.h
+.\obj\hw_config.o: ..\..\..\Libraries\CMSIS\Core\CM4\core_cm4_simd.h
+.\obj\hw_config.o: ..\..\..\Libraries\CMSIS\Device\STM32F4xx\Include\system_stm32f4xx.h
+.\obj\hw_config.o: ..\inc\stm32f4xx_conf.h
+.\obj\hw_config.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_gpio.h
+.\obj\hw_config.o: ..\..\..\Libraries\CMSIS\Device\STM32F4xx\Include\stm32f4xx.h
+.\obj\hw_config.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_rcc.h
+.\obj\hw_config.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_usart.h
+.\obj\hw_config.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_flash.h
+.\obj\hw_config.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_exti.h
+.\obj\hw_config.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_syscfg.h
+.\obj\hw_config.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\misc.h
+.\obj\hw_config.o: ..\inc\hw_config.h
+.\obj\hw_config.o: ..\inc\platform_config.h

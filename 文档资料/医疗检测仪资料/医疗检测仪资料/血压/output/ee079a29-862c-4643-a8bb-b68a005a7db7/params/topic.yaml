@@ -1,0 +1,15 @@
+detected_doc_type: "技术项目书（嵌入式软硬件项目总结报告）"
+target_length: 6500
+target_tone: "第一人称技术陈述，正式度★★★★☆，含实机数据与踩坑复盘"
+target_reader: "课程/项目评审老师、导师；具嵌入式背景的技术同行"
+core_points:
+  - "项目定位：多参数心电监护仪系统的血压子系统（NIBP 无创血压）"
+  - "硬件：STM32F407ZGT6 神舟号 V2.0 + HKB-08B+ 示波法血压模块 + 大彩 DC80480DN050 组态串口屏"
+  - "软件：SPL 标准外设库 + Keil AC5；三路 UART 分工；DMA+IDLE 空闲中断接收；软件 RTC"
+  - "协议：HKB-08B+ 私有帧 FF C0|LEN|CKSUM|CMD|DATA；大彩 EE...FF FC FF FF"
+  - "难点：CKSUM 累加错误、屏帧格式写错、跳线切走 USART2、瞬变型按钮死锁、接收溢出丢字节"
+user_requirements:
+  - "1 项目概述（需求、功能设计、技术方案）"
+  - "2 硬件设计（硬件选型、使用方法、接口、引脚）"
+  - "3 软件设计（iic、地址、协议、算法...）"
+  - "4 遇到的问题、项目的难点、技术栈"

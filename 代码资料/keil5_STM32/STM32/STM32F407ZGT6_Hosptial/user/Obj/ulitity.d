@@ -1,0 +1,20 @@
+.\obj\ulitity.o: ..\src\ulitity.c
+.\obj\ulitity.o: ..\inc\ulitity.h
+.\obj\ulitity.o: ..\inc\hmi_user_uart.h
+.\obj\ulitity.o: ..\inc\stm32f4xx_it.h
+.\obj\ulitity.o: ..\..\..\Libraries\CMSIS\Device\STM32F4xx\Include\stm32f4xx.h
+.\obj\ulitity.o: ..\..\..\Libraries\CMSIS\Core\CM4\core_cm4.h
+.\obj\ulitity.o: F:\Program Files\Keil_v514\ARM\ARMCC\Bin\..\include\stdint.h
+.\obj\ulitity.o: ..\..\..\Libraries\CMSIS\Core\CM4\core_cmInstr.h
+.\obj\ulitity.o: ..\..\..\Libraries\CMSIS\Core\CM4\core_cmFunc.h
+.\obj\ulitity.o: ..\..\..\Libraries\CMSIS\Core\CM4\core_cm4_simd.h
+.\obj\ulitity.o: ..\..\..\Libraries\CMSIS\Device\STM32F4xx\Include\system_stm32f4xx.h
+.\obj\ulitity.o: ..\inc\stm32f4xx_conf.h
+.\obj\ulitity.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_gpio.h
+.\obj\ulitity.o: ..\..\..\Libraries\CMSIS\Device\STM32F4xx\Include\stm32f4xx.h
+.\obj\ulitity.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_rcc.h
+.\obj\ulitity.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_usart.h
+.\obj\ulitity.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_flash.h
+.\obj\ulitity.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_exti.h
+.\obj\ulitity.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_syscfg.h
+.\obj\ulitity.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\misc.h

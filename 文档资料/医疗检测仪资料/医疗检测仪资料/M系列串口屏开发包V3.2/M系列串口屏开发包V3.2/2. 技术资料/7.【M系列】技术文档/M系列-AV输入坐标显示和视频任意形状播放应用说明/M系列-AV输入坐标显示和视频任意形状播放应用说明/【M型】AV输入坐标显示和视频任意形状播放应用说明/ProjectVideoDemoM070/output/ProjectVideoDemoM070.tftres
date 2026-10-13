@@ -1,0 +1,12 @@
+<Resource>
+    <pages>
+        <page name="首页" id="0" />
+        <page name="AV输入光标显示" id="1" />
+        <page name="视频不规则显示" id="2" />
+    </pages>
+    <images>
+        <image id="0" url="i:\svn\work\2020\技术文档\m系列视频控件如何设置透过颜色\projectvideodemom070\Images\首页.jpg" effect_width="800" effect_height="480" />
+        <image id="1" url="i:\svn\work\2020\技术文档\m系列视频控件如何设置透过颜色\projectvideodemom070\Images\背景.jpg" effect_width="800" effect_height="480" />
+    </images>
+    <waves />
+</Resource>

@@ -1,0 +1,141 @@
+{
+  "reference_project": "F:\\VisualTFT\\SPO2_Hospital",
+  "sources": [
+    "tools/build_pages.py lines 42-48",
+    "主界面.tft text foreground and background colors",
+    "images/bg_0.png",
+    "images/bg_3.png",
+    "images/btn_confirm_up.png",
+    "images/btn_confirm_down.png",
+    "images/btn_back_up.png"
+  ],
+  "colors": {
+    "background": "#0F1B2D",
+    "header": "#16263A",
+    "surface": "#18293D",
+    "inset": "#111F31",
+    "data_surface": "#132D40",
+    "pulse_surface": "#193333",
+    "border": "#30465E",
+    "text": "#F4F7FB",
+    "muted": "#ADBDCE",
+    "cyan": "#42CDE0",
+    "green": "#68D99F",
+    "amber": "#F2CB67",
+    "red": "#FF7C82",
+    "button": "#22364D",
+    "button_pressed": "#304D63",
+    "button_border": "#607B95"
+  },
+  "visualtft_rgb": {
+    "background": "15;27;45",
+    "header": "22;38;58",
+    "surface": "24;41;61",
+    "inset": "17;31;49",
+    "data_surface": "19;45;64",
+    "pulse_surface": "25;51;51",
+    "border": "48;70;94",
+    "text": "244;247;251",
+    "muted": "173;189;206",
+    "cyan": "66;205;224",
+    "green": "104;217;159",
+    "amber": "242;203;103",
+    "red": "255;124;130",
+    "button": "34;54;77",
+    "button_pressed": "48;77;99",
+    "button_border": "96;123;149"
+  },
+  "text_contrast_checks": [
+    {
+      "role": "主文字 / 通用卡片",
+      "foreground": "#F4F7FB",
+      "background": "#18293D",
+      "ratio": 13.73
+    },
+    {
+      "role": "次文字 / 数据卡片",
+      "foreground": "#ADBDCE",
+      "background": "#132D40",
+      "ratio": 7.41
+    },
+    {
+      "role": "次文字 / 顶栏",
+      "foreground": "#ADBDCE",
+      "background": "#16263A",
+      "ratio": 7.98
+    },
+    {
+      "role": "次文字 / 页面",
+      "foreground": "#ADBDCE",
+      "background": "#0F1B2D",
+      "ratio": 9.01
+    },
+    {
+      "role": "压力与血压 / 数据卡片",
+      "foreground": "#42CDE0",
+      "background": "#132D40",
+      "ratio": 7.47
+    },
+    {
+      "role": "脉率 / 脉率区",
+      "foreground": "#68D99F",
+      "background": "#193333",
+      "ratio": 7.69
+    },
+    {
+      "role": "按钮文字 / 常态",
+      "foreground": "#F4F7FB",
+      "background": "#22364D",
+      "ratio": 11.48
+    },
+    {
+      "role": "按钮文字 / 按下",
+      "foreground": "#F4F7FB",
+      "background": "#304D63",
+      "ratio": 8.26
+    },
+    {
+      "role": "停止文字 / 常态",
+      "foreground": "#FF7C82",
+      "background": "#22364D",
+      "ratio": 4.97
+    },
+    {
+      "role": "停止文字 / 按下",
+      "foreground": "#F4F7FB",
+      "background": "#304D63",
+      "ratio": 8.26
+    },
+    {
+      "role": "注意文字 / 提示",
+      "foreground": "#F2CB67",
+      "background": "#18293D",
+      "ratio": 9.49
+    },
+    {
+      "role": "琥珀标识 / 徽标",
+      "foreground": "#F2CB67",
+      "background": "#22364D",
+      "ratio": 7.94
+    },
+    {
+      "role": "提示正文 / 深色提示",
+      "foreground": "#F4F7FB",
+      "background": "#111F31",
+      "ratio": 15.46
+    },
+    {
+      "role": "完成提示正文 / 绿色提示",
+      "foreground": "#F4F7FB",
+      "background": "#193333",
+      "ratio": 12.51
+    },
+    {
+      "role": "次文字 / 禁用按钮",
+      "foreground": "#ADBDCE",
+      "background": "#111F31",
+      "ratio": 8.66
+    }
+  ],
+  "scope": "Colour adaptation of approved 800x480 layout; SVG/HTML review artifacts only."
+}

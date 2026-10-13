@@ -1,0 +1,254 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>ModbusTools</title>
+</head>
+
+<body>
+
+<table width="771" border="0" cellspacing="0" cellpadding="5" height="70" bgcolor="#0000A0">
+  <tr>
+    <td align="left" valign="middle">
+      <p align="center"><b><font size="7"><font color="ECECEC">Modbus</font><font color="#CC0033">Tools</font></font></b></p>
+    </td>
+  </tr>
+</table>
+<table width="771" border="0" cellspacing="0" cellpadding="5">
+  <tr align="left" valign="top">
+    <td width="62" bgcolor="#FFFFFF"><br>
+    </td>
+    <td bgcolor="#FFFFFF" width="675">
+      <p align="center"><b><font face="Arial, Helvetica, sans-serif" size="6">Modbus
+      Poll Quick start guide</font></b>
+      <p align="left">&nbsp;
+      <p><b><font face="Arial, Helvetica, sans-serif" size="6">Overview</font></b>
+      <p><span style="mso-ansi-language:EN-US">Modbus Poll uses a multiple
+      windows user interface. That means you can open several windows showing
+      different data areas or data from different slave ID’s at the same time.
+      You can write any text in the Alias cells.<br>
+      <span style="font-size:11.0pt;line-height:115%;
+font-family:Calibri;mso-fareast-font-family:Calibri;mso-bidi-font-family:&quot;Times New Roman&quot;;
+mso-ansi-language:EN-US;mso-fareast-language:EN-US;mso-bidi-language:AR-SA"><b>In
+      any dialog box you can press the F1 key for more help on that specific
+      topic.</b></span></span>
+      <p><span style="font-size:11.0pt;line-height:115%;
+font-family:Calibri;mso-fareast-font-family:Calibri;mso-bidi-font-family:&quot;Times New Roman&quot;;
+mso-ansi-language:EN-US;mso-fareast-language:EN-US;mso-bidi-language:AR-SA"><!--[if gte vml 1]><v:shapetype
+ id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t"
+ path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f">
+ <v:stroke joinstyle="miter"/>
+ <v:formulas>
+  <v:f eqn="if lineDrawn pixelLineWidth 0"/>
+  <v:f eqn="sum @0 1 0"/>
+  <v:f eqn="sum 0 0 @1"/>
+  <v:f eqn="prod @2 1 2"/>
+  <v:f eqn="prod @3 21600 pixelWidth"/>
+  <v:f eqn="prod @3 21600 pixelHeight"/>
+  <v:f eqn="sum @0 0 1"/>
+  <v:f eqn="prod @6 1 2"/>
+  <v:f eqn="prod @7 21600 pixelWidth"/>
+  <v:f eqn="sum @8 21600 0"/>
+  <v:f eqn="prod @7 21600 pixelHeight"/>
+  <v:f eqn="sum @10 21600 0"/>
+ </v:formulas>
+ <v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>
+ <o:lock v:ext="edit" aspectratio="t"/>
+</v:shapetype><v:shape id="_x0000_i1025" type="#_x0000_t75" style='width:441pt;
+ height:270.75pt'>
+ <v:imagedata src="../../../../../../DOCUME~1/bw/LOCALS~1/Temp/msohtml1/01/clip_image001.png"
+  o:title=""/>
+</v:shape><![endif]-->
+      </span><span style="mso-ansi-language:EN-US"><o:p>
+      </o:p>
+      <img border="0" src="Images/mbpoll.png" width="661" height="469"></span>
+      <p><span style="mso-ansi-language:EN-US">This picture shows two open
+      windows one reading 10 holding registers from address 0 and one reading 10
+      holding registers from address 100.</span>
+      <p>&nbsp;
+      <table border="0" width="100%">
+        <tr>
+          <td width="41%"><img border="0" src="Images/entervalue.png" width="281" height="310"></td>
+          <td width="59%" valign="top">&nbsp;
+            <p><span style="font-size:11.0pt;line-height:115%;
+font-family:Calibri;mso-fareast-font-family:Calibri;mso-bidi-font-family:&quot;Times New Roman&quot;;
+mso-ansi-language:EN-US;mso-fareast-language:EN-US;mso-bidi-language:AR-SA">If
+            your slave device allows you to change a Holding register then you
+            double click the cell or just start typing a new value in the cell.
+            Then an edit dialog box is shown.</span></td>
+        </tr>
+      </table>
+      <p><b><font face="Arial, Helvetica, sans-serif" size="6">Change the
+      read/write definition</font></b></p>
+      <p><span style="mso-ansi-language:EN-US">To change the read/write
+      definition of a window you can press F8 or select “read/write definition”
+      from the Setup menu.</span></p>
+      <p><img border="0" src="Images/readwritemenu.png" width="291" height="106"><span style="mso-ansi-language:EN-US"><o:p>
+      </o:p>
+      </span></p>
+      <p>&nbsp;
+      <table border="0" width="100%">
+        <tr>
+          <td width="41%"><img border="0" src="Images/definition.png" width="392" height="398"></td>
+          <td width="59%" valign="top">&nbsp;
+            <p><span style="font-size:11.0pt;line-height:115%;
+font-family:Calibri;mso-fareast-font-family:Calibri;mso-bidi-font-family:&quot;Times New Roman&quot;;
+mso-ansi-language:EN-US;mso-fareast-language:EN-US;mso-bidi-language:AR-SA">Here
+            you define which data to show in the window. This setup shows how to
+            read 10 Holding Registers from address 0. Address 40001 in some
+            protocol descriptions. Note that Modbus Poll uses Modbus addresses
+            which always counts from 0.</span></td>
+        </tr>
+      </table>
+      <table class="pinout" border="1">
+        <caption><br>
+          Device and MODBUS address ranges</caption>
+        <tbody>
+          <tr>
+            <th>Device address</th>
+            <th>MODBUS address</th>
+            <th>Description</th>
+            <th>Function</th>
+            <th>R/W</th>
+          </tr>
+          <tr class="odd">
+            <td align="right"><b>1</b>...<b>10000</b><sup>*</sup></td>
+            <td align="left">address - 1</td>
+            <td align="left">Coils (outputs)</td>
+            <td align="center">01</td>
+            <td align="center">Read/Write</td>
+          </tr>
+          <tr class="even">
+            <td align="right"><b>10001</b>...<b>20000</b><sup>*</sup></td>
+            <td align="left">address - 10001</td>
+            <td align="left">Discrete Inputs</td>
+            <td align="center">02</td>
+            <td align="center">Read</td>
+          </tr>
+          <tr>
+            <td align="right"><b>40001</b>...<b>50000</b><sup>*</sup></td>
+            <td align="left">address - 40001</td>
+            <td align="left">Holding Registers</td>
+            <td align="center">03</td>
+            <td align="center">Read/Write</td>
+          </tr>
+          <tr class="even">
+            <td align="right"><b>30001...40000*</b></td>
+            <td align="left">address - 30001</td>
+            <td align="left">Input Registers</td>
+            <td align="center">04</td>
+            <td align="center">Read</td>
+          </tr>
+        </tbody>
+      </table>
+      <sup>*</sup> Maximum value is device dependent. If your protocol specify
+      e.g. address 410501 you should select holding registers and address 10500.
+      <p><b><font face="Arial, Helvetica, sans-serif" size="6">How to make a
+      connection</font></b>
+      <p><span style="mso-ansi-language:EN-US"><o:p>
+      </o:p>
+      <span style="font-size:11.0pt;line-height:115%;
+font-family:Calibri;mso-fareast-font-family:Calibri;mso-bidi-font-family:&quot;Times New Roman&quot;;
+mso-ansi-language:EN-US;mso-fareast-language:EN-US;mso-bidi-language:AR-SA">There
+      is no data to display if you have not made a connection. To do so press F3
+      or select connect from the connection menu. For more detailed help press
+      F1.<br>
+      </span></span>
+      <table border="0" width="100%">
+        <tr>
+          <td width="41%"><img border="0" src="Images/connection.png" width="464" height="432"></td>
+          <td width="59%" valign="top">&nbsp;
+            <p><!--[if gte vml 1]><v:shapetype
+ id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t"
+ path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f">
+ <v:stroke joinstyle="miter"/>
+ <v:formulas>
+  <v:f eqn="if lineDrawn pixelLineWidth 0"/>
+  <v:f eqn="sum @0 1 0"/>
+  <v:f eqn="sum 0 0 @1"/>
+  <v:f eqn="prod @2 1 2"/>
+  <v:f eqn="prod @3 21600 pixelWidth"/>
+  <v:f eqn="prod @3 21600 pixelHeight"/>
+  <v:f eqn="sum @0 0 1"/>
+  <v:f eqn="prod @6 1 2"/>
+  <v:f eqn="prod @7 21600 pixelWidth"/>
+  <v:f eqn="sum @8 21600 0"/>
+  <v:f eqn="prod @7 21600 pixelHeight"/>
+  <v:f eqn="sum @10 21600 0"/>
+ </v:formulas>
+ <v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>
+ <o:lock v:ext="edit" aspectratio="t"/>
+</v:shapetype><v:shape id="_x0000_s1026" type="#_x0000_t75" style='position:absolute;
+ left:0;text-align:left;margin-left:0;margin-top:.3pt;width:242.9pt;height:222.9pt;
+ z-index:-1;mso-position-horizontal:left' wrapcoords="-67 0 -67 21527 21600 21527 21600 0 -67 0">
+ <v:imagedata src="../../../../../../DOCUME~1/bw/LOCALS~1/Temp/msohtml1/01/clip_image001.png"
+  o:title=""/>
+ <w:wrap type="square" side="right"/>
+</v:shape><![endif]-->
+            <span style="mso-ansi-language: EN-US; font-size: 11.0pt; line-height: 115%; font-family: Calibri; mso-fareast-font-family: Calibri; mso-bidi-font-family: Times New Roman; mso-fareast-language: EN-US; mso-bidi-language: AR-SA">This
+            connection uses a serial port for Modbus RTU communication.<o:p>
+            </o:p>
+            </span></p>
+            <p><span style="mso-ansi-language:EN-US"><span style="font-size: 11.0pt; line-height: 115%; font-family: Calibri; mso-fareast-font-family: Calibri; mso-bidi-font-family: Times New Roman; mso-fareast-language: EN-US; mso-bidi-language: AR-SA">5
+            different connection types are available however only 2 of them are
+            standard Modbus connections:<o:p>
+            </span></o:p>
+            </span></p>
+            <ul style="margin-top:0cm" type="disc">
+              <li class="MsoNormal" style="margin-bottom:0cm;margin-bottom:.0001pt;text-align:
+     justify;text-justify:inter-ideograph;mso-list:l0 level1 lfo1;tab-stops:
+     list 36.0pt right 481.9pt"><span style="mso-ansi-language:EN-US">Serial
+                port<o:p>
+                </o:p>
+                </span></li>
+              <li class="MsoNormal" style="margin-bottom:0cm;margin-bottom:.0001pt;text-align:
+     justify;text-justify:inter-ideograph;mso-list:l0 level1 lfo1;tab-stops:
+     list 36.0pt right 481.9pt"><span style="mso-ansi-language:EN-US">Modbus
+                TCP/IP<o:p>
+                </o:p>
+                </span></li>
+            </ul>
+            <p class="MsoNormal" style="margin-bottom:0cm;margin-bottom:.0001pt;text-align:
+justify;text-justify:inter-ideograph;tab-stops:right 481.9pt"><span style="mso-ansi-language:EN-US"><o:p>
+            &nbsp;</o:p>
+            </span></p>
+            <span style="font-size:11.0pt;line-height:115%;font-family:Calibri;mso-fareast-font-family:
+Calibri;mso-bidi-font-family:&quot;Times New Roman&quot;;mso-ansi-language:EN-US;
+mso-fareast-language:EN-US;mso-bidi-language:AR-SA">For serial connection you
+            may need an USB to RS485, or an RS232 to RS485 converter.</span>
+            <p>&nbsp;</td>
+        </tr>
+      </table>
+      <p><b><font face="Arial, Helvetica, sans-serif" size="6">More features</font></b>
+      <ul>
+        <li>
+          <p>Log data to a text file</li>
+        <li>
+          <p>Log data directly to Excel sheet</li>
+        <li>
+          <p>View communication traffic</li>
+        <li>
+          <p>Test center for test with custom test strings</li>
+        <li>
+          <p>Display in many formats such as Hex, binary, float etc.</li>
+      </ul>
+      <p><a href="http://www.modbustools.com/">http://www.modbustools.com/</a>
+      <p>&nbsp;</p>
+    </td>
+  </tr>
+</table>
+<table width="771" border="0" cellspacing="0" cellpadding="5">
+  <tr bgcolor="#000080">
+    <td>
+      <p align="center"><font color="#FFFFFF" size="1" face="Arial, Helvetica, sans-serif">Copyright
+      © 2014 ModbusTools - All rights reserved. Modbus is</font> <font color="#FFFFFF" size="1" face="Arial, Helvetica, sans-serif">trademark
+      of Modicon.</font></p>
+    </td>
+  </tr>
+</table>
+
+</body>
+
+</html>

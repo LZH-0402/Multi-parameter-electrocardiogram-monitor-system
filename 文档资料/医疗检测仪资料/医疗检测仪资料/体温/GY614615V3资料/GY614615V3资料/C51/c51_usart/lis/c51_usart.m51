@@ -1,0 +1,368 @@
+BL51 BANKED LINKER/LOCATER V6.22                                                        08/06/2020  09:21:06  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
+D:\PROGRAM FILES\KEIL_C5\C51\BIN\BL51.EXE ..\output\main.obj, ..\output\stc_it.obj, ..\output\usart.obj TO ..\output\c51
+>> _usart PRINT (..\lis\c51_usart.m51) RAMSIZE (256)
+
+
+MEMORY MODEL: LARGE WITH FLOATING POINT ARITHMETIC
+
+
+INPUT MODULES INCLUDED:
+  ..\output\main.obj (MAIN)
+  ..\output\stc_it.obj (STC_IT)
+  ..\output\usart.obj (USART)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51FPL.LIB (?C?FPDIV)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51FPL.LIB (?C?FCAST)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51FPL.LIB (PRINTF)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51FPL.LIB (?C?FPGETOPN)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51FPL.LIB (?C?FPROUND)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51FPL.LIB (?C?FPCONVERT)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51FPL.LIB (?C?FPADD)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51FPL.LIB (?C?FPMUL)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51FPL.LIB (?C?FTNPWR)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51L.LIB (?C_STARTUP)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51L.LIB (?C?COPY)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51L.LIB (?C?CLDPTR)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51L.LIB (?C?CLDOPTR)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51L.LIB (?C?CSTPTR)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51L.LIB (?C?ULDIV)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51L.LIB (?C?LNEG)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51L.LIB (?C?LSTXDATA)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51L.LIB (?C?PLDIXDATA)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51L.LIB (?C?PSTXDATA)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51L.LIB (?C?CCASE)
+  D:\PROGRAM FILES\KEIL_C5\C51\LIB\C51L.LIB (?C_INIT)
+
+
+LINK MAP OF MODULE:  ..\output\c51_usart (MAIN)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     0005H     UNIT         _DATA_GROUP_
+                    000DH     0013H                  *** GAP ***
+            BIT     0020H.0   0001H.1   UNIT         _BIT_GROUP_
+                    0021H.1   0000H.7                *** GAP ***
+            IDATA   0022H     0001H     UNIT         ?STACK
+
+            * * * * * * *  X D A T A   M E M O R Y  * * * * * * *
+            XDATA   0000H     0043H     UNIT         _XDATA_GROUP_
+            XDATA   0043H     0020H     UNIT         ?XD?STC_IT
+            XDATA   0063H     0020H     UNIT         ?XD?USART
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+            CODE    0003H     000EH     UNIT         ?PR?_PUTCHAR?MAIN
+            CODE    0011H     0001H     UNIT         ?PR?EXTI1_IRQHANDLER?STC_IT
+BL51 BANKED LINKER/LOCATER V6.22                                                      08/06/2020  09:21:06  PAGE 2
+
+
+                    0012H     0001H                  *** GAP ***
+            CODE    0013H     0003H     ABSOLUTE     
+                    0016H     000DH                  *** GAP ***
+            CODE    0023H     0003H     ABSOLUTE     
+            CODE    0026H     0754H     UNIT         ?C?LIB_CODE
+            CODE    077AH     0483H     UNIT         ?PR?PRINTF?PRINTF
+            CODE    0BFDH     018EH     UNIT         ?PR?MAIN?MAIN
+            CODE    0D8BH     00ECH     UNIT         ?PR?USART_IRQHANDLER?STC_IT
+            CODE    0E77H     008CH     UNIT         ?C_C51STARTUP
+            CODE    0F03H     0055H     UNIT         ?CO?MAIN
+            CODE    0F58H     0053H     UNIT         ?C_INITSEG
+            CODE    0FABH     0032H     UNIT         ?PR?_USART_INT?USART
+
+
+
+OVERLAY MAP OF MODULE:   ..\output\c51_usart (MAIN)
+
+
+SEGMENT                                BIT_GROUP          DATA_GROUP          XDATA_GROUP
+  +--> CALLED SEGMENT               START    LENGTH     START    LENGTH     START    LENGTH
+-------------------------------------------------------------------------------------------
+?PR?USART_IRQHANDLER?STC_IT         -----    -----      -----    -----      0000H    0001H
+
+*** NEW ROOT ***************************************************
+
+?C_C51STARTUP                       -----    -----      -----    -----      -----    -----
+  +--> ?PR?MAIN?MAIN
+  +--> ?C_INITSEG
+
+?PR?MAIN?MAIN                       -----    -----      -----    -----      0001H    0012H
+  +--> ?CO?MAIN
+  +--> ?PR?_USART_INT?USART
+  +--> ?PR?PRINTF?PRINTF
+
+?PR?_USART_INT?USART                -----    -----      -----    -----      0013H    0004H
+
+?PR?PRINTF?PRINTF                   0020H.0  0001H.1    0008H    0005H      0013H    0030H
+  +--> ?PR?_PUTCHAR?MAIN
+
+
+
+SYMBOL TABLE OF MODULE:  ..\output\c51_usart (MAIN)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        MAIN
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0090H         PUBLIC        P1
+  D:00B0H         PUBLIC        P3
+  D:00A8H         PUBLIC        IE
+  B:00A8H.4       PUBLIC        ES
+  D:00B8H         PUBLIC        IP
+  B:0098H.1       PUBLIC        TI
+  C:0BFDH         PUBLIC        main
+  D:0099H         PUBLIC        SBUF
+  D:0098H         PUBLIC        SCON
+BL51 BANKED LINKER/LOCATER V6.22                                                      08/06/2020  09:21:06  PAGE 3
+
+
+  D:0088H         PUBLIC        TCON
+  C:0F48H         SYMBOL        _?ix1000
+  D:00C8H         PUBLIC        T2CON
+  D:00D0H         PUBLIC        PSW
+  C:0003H         PUBLIC        _putchar
+  -------         PROC          _PUTCHAR
+  D:0007H         SYMBOL        c
+  C:0003H         LINE#         19
+  C:0003H         LINE#         20
+  C:0003H         LINE#         21
+  C:0005H         LINE#         22
+  C:0007H         LINE#         23
+  C:000AH         LINE#         24
+  C:000CH         LINE#         25
+  C:000EH         LINE#         26
+  C:0010H         LINE#         27
+  -------         ENDPROC       _PUTCHAR
+  -------         PROC          MAIN
+  -------         DO            
+  X:0001H         SYMBOL        sum
+  X:0002H         SYMBOL        i
+  X:0003H         SYMBOL        my_ir
+  -------         ENDDO         
+  C:0BFDH         LINE#         35
+  C:0BFDH         LINE#         36
+  C:0BFDH         LINE#         38
+  C:0C04H         LINE#         39
+  C:0C16H         LINE#         40
+  C:0C21H         LINE#         41
+  C:0C21H         LINE#         42
+  C:0C21H         LINE#         43
+  C:0C27H         LINE#         44
+  C:0C27H         LINE#         45
+  C:0C48H         LINE#         46
+  C:0C60H         LINE#         47
+  C:0C79H         LINE#         48
+  C:0C79H         LINE#         49
+  C:0C8DH         LINE#         50
+  C:0CA1H         LINE#         51
+  C:0CB5H         LINE#         52
+  C:0CC4H         LINE#         53
+  C:0CEBH         LINE#         54
+  C:0D12H         LINE#         55
+  C:0D39H         LINE#         56
+  C:0D5DH         LINE#         57
+  C:0D5FH         LINE#         59
+  C:0D5FH         LINE#         60
+  C:0D70H         LINE#         61
+  C:0D83H         LINE#         62
+  C:0D83H         LINE#         63
+  C:0D88H         LINE#         65
+  C:0D88H         LINE#         66
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        MAIN
+
+  -------         MODULE        STC_IT
+  C:0000H         SYMBOL        _ICE_DUMMY_
+BL51 BANKED LINKER/LOCATER V6.22                                                      08/06/2020  09:21:06  PAGE 4
+
+
+  D:0090H         PUBLIC        P1
+  D:00B0H         PUBLIC        P3
+  D:00A8H         PUBLIC        IE
+  D:00B8H         PUBLIC        IP
+  B:0098H.0       PUBLIC        RI
+  B:0098H.1       PUBLIC        TI
+  X:0062H         PUBLIC        stata
+  C:0D8BH         PUBLIC        USART_IRQHandler
+  D:0099H         PUBLIC        SBUF
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+  D:00C8H         PUBLIC        T2CON
+  D:00D0H         PUBLIC        PSW
+  C:0011H         PUBLIC        EXTI1_IRQHandler
+  -------         PROC          EXTI1_IRQHANDLER
+  C:0011H         LINE#         6
+  C:0011H         LINE#         8
+  -------         ENDPROC       EXTI1_IRQHANDLER
+  -------         PROC          USART_IRQHANDLER
+  -------         DO            
+  X:0043H         SYMBOL        i
+  X:0044H         SYMBOL        rebuf
+  X:0000H         SYMBOL        sum
+  -------         ENDDO         
+  C:0D8BH         LINE#         10
+  C:0DA8H         LINE#         13
+  C:0DADH         LINE#         14
+  C:0DB0H         LINE#         15
+  C:0DB0H         LINE#         16
+  C:0DB2H         LINE#         17
+  C:0DB6H         LINE#         18
+  C:0DB6H         LINE#         19
+  C:0DBCH         LINE#         20
+  C:0DBCH         LINE#         21
+  C:0DD0H         LINE#         22
+  C:0DD2H         LINE#         23
+  C:0DDAH         LINE#         24
+  C:0DDCH         LINE#         25
+  C:0DECH         LINE#         26
+  C:0DEEH         LINE#         27
+  C:0DFBH         LINE#         28
+  C:0DFDH         LINE#         29
+  C:0E0DH         LINE#         30
+  C:0E12H         LINE#         31
+  C:0E1CH         LINE#         32
+  C:0E1CH         LINE#         33
+  C:0E21H         LINE#         34
+  C:0E21H         LINE#         35
+  C:0E36H         LINE#         36
+  C:0E36H         LINE#         38
+  C:0E3CH         LINE#         39
+  C:0E3CH         LINE#         40
+  C:0E4FH         LINE#         41
+  C:0E55H         LINE#         42
+  C:0E55H         LINE#         43
+  C:0E55H         LINE#         45
+  C:0E55H         LINE#         46
+BL51 BANKED LINKER/LOCATER V6.22                                                      08/06/2020  09:21:06  PAGE 5
+
+
+  C:0E57H         LINE#         48
+  C:0E5CH         LINE#         49
+  C:0E5CH         LINE#         51
+  C:0E5CH         LINE#         53
+  -------         ENDPROC       USART_IRQHANDLER
+  -------         ENDMOD        STC_IT
+
+  -------         MODULE        USART
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0090H         PUBLIC        P1
+  X:0063H         PUBLIC        Receive_ok
+  D:00B0H         PUBLIC        P3
+  D:00A8H         PUBLIC        IE
+  D:00B8H         PUBLIC        IP
+  C:0FABH         PUBLIC        _Usart_Int
+  D:0098H         PUBLIC        SCON
+  D:0089H         PUBLIC        TMOD
+  D:0088H         PUBLIC        TCON
+  D:008DH         PUBLIC        TH1
+  D:008BH         PUBLIC        TL1
+  X:0064H         PUBLIC        send_ok
+  D:00C8H         PUBLIC        T2CON
+  X:0065H         PUBLIC        usart_rx_data
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          _USART_INT
+  X:0013H         SYMBOL        BaudRatePrescaler
+  C:0FABH         LINE#         4
+  C:0FB1H         LINE#         5
+  C:0FB1H         LINE#         6
+  C:0FB4H         LINE#         7
+  C:0FB7H         LINE#         9
+  C:0FD4H         LINE#         10
+  C:0FD6H         LINE#         11
+  C:0FD9H         LINE#         12
+  C:0FDCH         LINE#         13
+  -------         ENDPROC       _USART_INT
+  -------         ENDMOD        USART
+
+  -------         MODULE        ?C?FPDIV
+  C:0029H         PUBLIC        ?C?FPDIV
+  -------         ENDMOD        ?C?FPDIV
+
+  -------         MODULE        ?C?FCAST
+  C:00D0H         PUBLIC        ?C?FCASTC
+  C:00CBH         PUBLIC        ?C?FCASTI
+  C:00C6H         PUBLIC        ?C?FCASTL
+  -------         ENDMOD        ?C?FCAST
+
+  -------         MODULE        PRINTF
+  X:0013H         PUBLIC        ?_PRINTF?BYTE
+  X:0013H         PUBLIC        ?_SPRINTF?BYTE
+  C:07E5H         PUBLIC        _PRINTF
+  C:07DFH         PUBLIC        _SPRINTF
+  -------         ENDMOD        PRINTF
+
+  -------         MODULE        ?C?FPROUND
+  C:014EH         PUBLIC        ?C?FPROUND
+BL51 BANKED LINKER/LOCATER V6.22                                                      08/06/2020  09:21:06  PAGE 6
+
+
+  -------         ENDMOD        ?C?FPROUND
+
+  -------         MODULE        ?C?FPCONVERT
+  C:018BH         PUBLIC        ?C?FPCONVERT
+  -------         ENDMOD        ?C?FPCONVERT
+
+  -------         MODULE        ?C?FPADD
+  C:0297H         PUBLIC        ?C?FPADD
+  C:0293H         PUBLIC        ?C?FPSUB
+  -------         ENDMOD        ?C?FPADD
+
+  -------         MODULE        ?C?FPMUL
+  C:0388H         PUBLIC        ?C?FPMUL
+  -------         ENDMOD        ?C?FPMUL
+
+  -------         MODULE        ?C?FTNPWR
+  C:04BEH         PUBLIC        ?C?FTNPWR
+  -------         ENDMOD        ?C?FTNPWR
+
+  -------         MODULE        ?C?COPY
+  C:05CEH         PUBLIC        ?C?COPY
+  -------         ENDMOD        ?C?COPY
+
+  -------         MODULE        ?C?CLDPTR
+  C:05F4H         PUBLIC        ?C?CLDPTR
+  -------         ENDMOD        ?C?CLDPTR
+
+  -------         MODULE        ?C?CLDOPTR
+  C:060DH         PUBLIC        ?C?CLDOPTR
+  -------         ENDMOD        ?C?CLDOPTR
+
+  -------         MODULE        ?C?CSTPTR
+  C:063AH         PUBLIC        ?C?CSTPTR
+  -------         ENDMOD        ?C?CSTPTR
+
+  -------         MODULE        ?C?ULDIV
+  C:0688H         PUBLIC        ?C?ULDIV
+  -------         ENDMOD        ?C?ULDIV
+
+  -------         MODULE        ?C?LNEG
+  C:071AH         PUBLIC        ?C?LNEG
+  -------         ENDMOD        ?C?LNEG
+
+  -------         MODULE        ?C?LSTXDATA
+  C:0728H         PUBLIC        ?C?LSTXDATA
+  -------         ENDMOD        ?C?LSTXDATA
+
+  -------         MODULE        ?C?PLDIXDATA
+  C:0734H         PUBLIC        ?C?PLDIXDATA
+  -------         ENDMOD        ?C?PLDIXDATA
+
+  -------         MODULE        ?C?PSTXDATA
+  C:074BH         PUBLIC        ?C?PSTXDATA
+  -------         ENDMOD        ?C?PSTXDATA
+
+  -------         MODULE        ?C?CCASE
+  C:0754H         PUBLIC        ?C?CCASE
+BL51 BANKED LINKER/LOCATER V6.22                                                      08/06/2020  09:21:06  PAGE 7
+
+
+  -------         ENDMOD        ?C?CCASE
+
+Program Size: data=15.1 xdata=131 code=4047
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,62 @@
+schema_version: 1
+request_id: ee079a29-862c-4643-a8bb-b68a005a7db7
+created_at: 2026-10-09T20:05:00+08:00
+updated_at: 2026-10-09T20:20:00+08:00
+
+entry_type: md_only
+stage_chain: [1]
+
+output_docx_path: null
+output_docx_user_specified: false
+output_md_path: "F:/多参数心电监护仪系统-样机开发/文档资料/医疗检测仪资料/医疗检测仪资料/血压/血压模块项目书.md"
+
+current_stage: 1
+
+stages:
+  stage_0:
+    status: completed
+    completed_at: 2026-10-09T20:05:00+08:00
+    decision: full_pipeline
+
+  stage_1:
+    status: completed
+    started_at: 2026-10-09T20:05:00+08:00
+    completed_at: 2026-10-09T20:18:00+08:00
+    output_path: "stage1/final_draft.md"
+    genre: general
+    expert_used: general-writer
+    route_tag: general_writing
+    critic_decision: null
+    critic_skip_reason: "genre=general 属低风险档，按风险分档表 Critic 模式=skip"
+    word_count: 6800
+
+  stage_2:
+    status: skipped
+    started_at: null
+    completed_at: null
+    route: null
+    html_sub: null
+    output_path: null
+    output_format: null
+    skills_invoked: []
+    design_tokens_path: null
+    fallback: false
+    fallback_reason: "用户明确要求交付 .md 文档，跳过 Stage 2/3 排版链路"
+
+  stage_3:
+    status: skipped
+    started_at: null
+    completed_at: null
+    executor: null
+    input_format: null
+    output_path: null
+    skill_used: []
+    present_files_opened: false
+    fallback: false
+    fallback_reason: null
+
+consistency_check:
+  output_files_exist: null
+  stage_chain_complete: null
+  last_checked_at: null
+  errors: []

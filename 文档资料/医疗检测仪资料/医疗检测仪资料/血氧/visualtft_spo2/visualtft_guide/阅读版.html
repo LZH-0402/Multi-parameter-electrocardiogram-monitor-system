@@ -1,0 +1,1874 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>VisualTFT 医院版血氧界面绘制指南</title><style>body{font:16px/1.8 'Microsoft YaHei UI',sans-serif;color:#253348;background:#f0f3f7;margin:0}main{max-width:1180px;background:#fff;margin:24px auto;padding:32px 40px}h1{font-size:28px;line-height:1.4}h2{margin-top:48px;padding-top:20px;border-top:2px solid #d6e0ea;font-size:23px}h3{font-size:20px;margin-top:34px}a{color:#126585}img{max-width:100%;height:auto;display:block}p>img{width:auto;max-width:800px}table{width:100%;border-collapse:collapse;font-size:13px;margin:18px 0}td,th{border:1px solid #ccd6e1;padding:8px;vertical-align:top}th{background:#e8eff5;text-align:left}td img{max-width:180px}code{font-family:Consolas,monospace;background:#edf2f6;padding:2px 4px}pre{padding:16px;background:#edf2f6;overflow:auto;white-space:pre-wrap}blockquote{border-left:4px solid #849bb0;padding-left:16px;color:#53657a}@media(max-width:800px){main{padding:20px;margin:0}table{display:block;overflow:auto}}</style><main><h1>VisualTFT 医院版血氧界面绘制指南</h1>
+<p>适用画布：<strong>800 × 480，横屏</strong>。基于本项目已完成的深蓝灰医院版界面，以及本地 M 系列开发包中的 VisualTFT 教程整理。本文提供绘制素材、控件坐标、建议 ID、按钮状态图、点击结果图和配置步骤。</p>
+<p><strong>推荐做法：每页导入一张静态背景，再叠加真实的按钮、文本、曲线和滑块控件。</strong> 效果图用于对照，背景图用于实际绘制；示例读数和曲线不应作为实时数据显示层。</p>
+<p>当前设备的具体型号、固件和 VisualTFT 工程未提供，本文不假定串口参数，也未在实物屏或 VisualTFT 仿真中运行。本次已核对图片尺寸、文件链接及布局；文中的 ID 是新工程的建议分配，已有工程请整体映射。</p>
+<h2>目录</h2>
+<ol>
+<li>素材分类与使用方法</li>
+<li>新建工程和公共配置</li>
+<li>页面 ID 与切换关系</li>
+<li>各页面绘制步骤和控件表</li>
+<li>所有按钮及小素材图片</li>
+<li>每个操作后的界面图</li>
+<li>绘制完成后的验证步骤</li>
+<li>资料来源与版本差异</li>
+</ol>
+<h2>1. 素材分类与使用方法</h2>
+<p>本文中的图片均可直接打开查看原尺寸。图片文件保存在与本文同级的 <code>visualtft_guide</code> 文件夹内，移动文档时应一并保留素材。本文使用本机绝对路径，若换电脑，可使用配套压缩包内的相对路径版文档。</p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th align="right">数量</th>
+<th>用法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>backgrounds/bg_0.png</code>～<code>bg_6.png</code></td>
+<td align="right">7 张</td>
+<td>真正导入画面背景的图片；动态内容与操作按钮已留空</td>
+</tr>
+<tr>
+<td><code>buttons/*.png</code></td>
+<td align="right">48 张</td>
+<td>按钮弹起/按压/选中态、声音开关、输入框、质量条和滑块指示器</td>
+</tr>
+<tr>
+<td><code>states/*.png</code></td>
+<td align="right">19 张</td>
+<td>完整效果图和操作结果，用于对照；不作为设备实时画面的背景</td>
+</tr>
+<tr>
+<td><code>illustrations/*keyboard.png</code></td>
+<td align="right">2 张</td>
+<td>数值键盘的位置示意，实际原生键盘由软件和固件决定</td>
+</tr>
+<tr>
+<td><code>illustrations/button_atlas.png</code></td>
+<td align="right">1 张</td>
+<td>素材总览，方便核对文件名</td>
+</tr>
+<tr>
+<td><code>manifest.json</code></td>
+<td align="right">1 份</td>
+<td>图片实际尺寸、字节数及坐标记录</td>
+</tr>
+</tbody></table>
+<p><code>up</code> = 手指未按住时；<code>down</code> = 手指按住的瞬时反馈；<code>selected</code> = 选中的常驻状态。切换画面是另一个动作，<strong>不能把目标画面截图填进独立小按钮的“按下时图片”</strong>。</p>
+<p>本指南沿用原来的 0～5 号画面，并新增 <strong>6 号“清空记录确认”画面</strong>。暂停态、声音关闭态、趋势时段和历史事件详情均为原画面内部状态，不额外占用画面 ID。系统小键盘也不在这 7 个画面中分配普通画面 ID。</p>
+<h2>2. 新建工程和公共配置</h2>
+<h3>2.1 新建与素材导入</h3>
+<ol>
+<li>打开 VisualTFT，通过“文件 → 新建工程”创建工程，选择<strong>与你实际屏幕匹配的型号和系列</strong>。确认分辨率为 800 × 480、横屏。不要只因分辨率相同而选另一个型号。</li>
+<li>建议先保存为 <code>SPO2_Hospital</code> 工程；将本文配套素材复制到工程工作目录，保留文件名。</li>
+<li>在工程的画面树中按顺序建立画面 0～6，名称按第 3 节填写。若软件自动分配 ID，逐页核对实际 ID。</li>
+<li>选中画面的空白处，在画面属性中选择对应的“背景图片”，导入 <code>backgrounds/bg_N.png</code>。位置为 <code>(0,0)</code>，尺寸为 <code>800×480</code>，完整显示，不缩放。</li>
+<li>如当前版本使用图片控件作为背景，把图片控件放在最底层、位置 <code>(0,0)</code>、尺寸 <code>800×480</code>，关闭不需要的触摸行为。不要把它放在按钮之上。</li>
+<li>导入 <code>buttons</code> 文件夹中的所需 PNG，按第 4 节表格添加控件并设置位置、尺寸。<strong>PNG 是直接导入资源；HTML/SVG/MD 不是 VisualTFT 工程文件。</strong></li>
+<li>先完成主界面及一个“趋势 → 返回”的路径，在虚拟屏中确认坐标与素材正确，再按相同方式完成余下页面。</li>
+</ol>
+<p>本地软件目录名为 <code>VisualTFT_3.0.0.1253</code>；教程中的属性名称来自不同修订版本。若属性所在位置不同，以对应控件的属性页名称为准。</p>
+<h3>2.2 公共颜色与字体</h3>
+<table>
+<thead>
+<tr>
+<th>用途</th>
+<th>颜色</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>页面背景</td>
+<td><code>#0F1B2D</code></td>
+</tr>
+<tr>
+<td>顶栏</td>
+<td><code>#16263A</code></td>
+</tr>
+<tr>
+<td>普通面板</td>
+<td><code>#18293D</code></td>
+</tr>
+<tr>
+<td>曲线/深色内区</td>
+<td><code>#111F31</code></td>
+</tr>
+<tr>
+<td>主文字</td>
+<td><code>#F4F7FB</code></td>
+</tr>
+<tr>
+<td>次要文字</td>
+<td><code>#ADBDCE</code></td>
+</tr>
+<tr>
+<td>SpO₂</td>
+<td><code>#42CDE0</code></td>
+</tr>
+<tr>
+<td>PR</td>
+<td><code>#68D99F</code></td>
+</tr>
+<tr>
+<td>提示</td>
+<td><code>#F2CB67</code></td>
+</tr>
+<tr>
+<td>报警</td>
+<td><code>#FF7C82</code></td>
+</tr>
+<tr>
+<td>按钮底色 / 边框</td>
+<td><code>#22364D</code> / <code>#607B95</code></td>
+</tr>
+</tbody></table>
+<p>静态中文、图标及装饰已在背景/按钮 PNG 中，不需要再次叠加。动态文字使用屏幕实际可用的中文字库；建议主读数约 72 px、重要数值约 28～32 px、正文 16 px、辅助信息 13～14 px。固件若无对应字号，选最接近的可用字库并检查是否裁切。动态字符串使用 <code>SpO2</code> 也可，背景中的 <code>SpO₂</code> 已是位图。</p>
+<h3>2.3 图片按钮公共属性</h3>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>本指南建议配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>控件 ID</td>
+<td>使用第 4 节分配；同画面唯一</td>
+</tr>
+<tr>
+<td>x / y / 宽 / 高</td>
+<td>按本指南表格逐项输入</td>
+</tr>
+<tr>
+<td>弹起时的图片</td>
+<td>对应 <code>*_up.png</code></td>
+</tr>
+<tr>
+<td>按下时的图片</td>
+<td>普通瞬变按钮使用 <code>*_down.png</code></td>
+</tr>
+<tr>
+<td>裁剪</td>
+<td><strong>不勾选</strong>：这里提供的是与按钮同尺寸的独立切图</td>
+</tr>
+<tr>
+<td>文字状态</td>
+<td><strong>否</strong>：按钮 PNG 已包含文字，避免重复叠字</td>
+</tr>
+<tr>
+<td>触摸虚框</td>
+<td>否，使用提供的按压图反馈</td>
+</tr>
+<tr>
+<td>触控用途</td>
+<td>页面导航用“切换画面”；状态控制按下面的方式配置</td>
+</tr>
+<tr>
+<td>目标画面</td>
+<td>填第 3 节对应 ID，不是 PNG 的资源编号</td>
+</tr>
+<tr>
+<td>子画面</td>
+<td>本指南采用完整页面切换，选“否”</td>
+</tr>
+<tr>
+<td>切换动画</td>
+<td>无/默认直接切换</td>
+</tr>
+</tbody></table>
+<p><strong>切换画面的按钮</strong>可直接配置“触控用途 → 切换画面 → 目标画面”。<strong>需要 MCU 处理的按钮</strong>使用“开关描述”等能启用事件通知的用途，操作风格选“瞬变”，开启事件通知；主控只处理一次有效释放事件。不要把同一动作同时绑定在按下和弹起并各执行一次。</p>
+<p>若明确需要“松开后才跳转”，而当前版本的直接切换触发时机不符合要求，可改用“开关描述 → 瞬变 → 对内指令 → 弹起时”，在指令助手里生成该工程的切换画面指令。<strong>直接切换与该替代方式二选一</strong>，不重复配置。</p>
+<blockquote>
+<p>教程中部分示例勾选“裁剪”，是因为使用整张页面素材，取出按钮所在坐标区域。本指南提供独立小图，不能照搬那个勾选项。</p>
+</blockquote>
+<h3>2.4 动态数据与设备确认</h3>
+<p>文本读数、波形、报警记录、声音状态和暂停状态均应由设备实际数据驱动。仅切换到“暂停效果图”不会停止采集或报警；仅移动滑块不会改变背光。</p>
+<p>建议处理顺序：<strong>触摸请求 → 主控检查并执行 → 主控回写状态 → 切换/刷新显示</strong>。画面 4 的确认暂停、画面 6 的确认清空、报警限值和声音开关都按此处理。未收到确认时保留原状态；首次启动和无效测量时主读数显示 <code>--</code>。</p>
+<p>本文不填写未经当前工程验证的原始串口字节，也不新增 MCU/LUA 实现。纯页面跳转可以在 VisualTFT 直接完成；数据加载和设备动作仍需已有主控程序配合。</p>
+<h2>3. 页面 ID 与切换关系</h2>
+<table>
+<thead>
+<tr>
+<th align="right">画面 ID</th>
+<th>名称</th>
+<th>入口</th>
+<th>返回位置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">0</td>
+<td>床旁血氧监护</td>
+<td>上电首页</td>
+<td>—</td>
+</tr>
+<tr>
+<td align="right">1</td>
+<td>趋势分析</td>
+<td>0 的“趋势”</td>
+<td>0</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td>报警记录</td>
+<td>0 的“报警记录”</td>
+<td>0</td>
+</tr>
+<tr>
+<td align="right">3</td>
+<td>监护设置</td>
+<td>0 的“设置”</td>
+<td>0</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td>暂停监护确认</td>
+<td>0 的“暂停监护”</td>
+<td>取消返回 0；确认后 0 显示暂停态</td>
+</tr>
+<tr>
+<td align="right">5</td>
+<td>报警与探头状态</td>
+<td>2 的任意记录；可选的主界面状态入口</td>
+<td>来自记录返回 2；来自主界面返回 0</td>
+</tr>
+<tr>
+<td align="right">6</td>
+<td>清空记录确认</td>
+<td>2 的“清空记录”</td>
+<td>取消回 2；确认后 2 显示空列表</td>
+</tr>
+</tbody></table>
+<pre><code class="language-mermaid">flowchart LR
+  P0[0 主测量] --&gt;|趋势| P1[1 趋势]
+  P0 --&gt;|报警记录| P2[2 报警记录]
+  P0 --&gt;|设置| P3[3 设置]
+  P0 --&gt;|暂停监护| P4[4 暂停确认]
+  P2 --&gt;|选择记录| P5[5 报警与探头状态]
+  P2 --&gt;|清空记录| P6[6 清空确认]
+  P1 --&gt;|返回| P0
+  P3 --&gt;|返回| P0
+  P2 --&gt;|返回| P0
+  P4 --&gt;|取消 / 确认后| P0
+  P5 --&gt;|返回记录| P2
+  P6 --&gt;|取消 / 确认后| P2
+</code></pre>
+<h2>4. 各页面绘制步骤和控件表</h2>
+<p>坐标原点为左上角，单位为像素。以下表格是推荐的<strong>设备侧控件布局</strong>：对可能变为三位数、长状态文字的区域已预留宽度。主界面与趋势摘要中的数字单位固定在数值区右侧，避免读数变为三位数时挤压单位。</p>
+<p>每页的公共 ID 90 为床位、91 为探头状态、92 为时钟。除特别说明的关联滑块和记录行显示层外，不要让可操作热区相互遮挡。表中“组合/区域”表示需要按正文拆成真实控件，并非某个必须存在的 VisualTFT 控件类型。</p>
+<h3>4.1 画面 0：床旁血氧监护</h3>
+<p><strong>完成后效果：</strong></p>
+<p><img src="./states/page_0.png" alt="床旁血氧监护"></p>
+<p><strong>实际导入的背景：</strong></p>
+<p><img src="./backgrounds/bg_0.png" alt="画面 0 静态背景"></p>
+<ol>
+<li>导入 <code>bg_0.png</code>。标题、参数名、单位、面板和波形区标题已在背景中。</li>
+<li>添加 ID 1～4 的图片按钮，分别使用暂停、趋势、报警记录、设置素材。切换目标分别为 4、1、2、3。</li>
+<li>在数值区添加文本控件 ID 10、11，青蓝与绿色，水平左对齐、垂直居中；输入方式设为“用户主机输入”。初始值用 <code>--</code>，设备确认有效后再写入读数。</li>
+<li>加入有效性、报警限值、状态、信号质量和监护时长文本。主读数变化时清除原文字区域，避免透明文本残影。</li>
+<li>ID 19 添加曲线控件，显示区 <code>(29,272,742,78)</code>，背景 <code>#111F31</code>，波形青蓝。网格通过曲线控件配置；示例图仅说明视觉形态。纵向映射、增益和刷新速率由实际 PPG 数据接口确定。</li>
+<li>ID 18 使用质量条图标序列 <code>quality_0.png</code>～<code>quality_5.png</code>。图片实际大小 34×18，可放在 <code>(733,247)</code>；分级规则由主控决定，不能仅凭素材顺序推断设备算法。</li>
+<li>暂停确认成功后，ID 1 使用 <code>btn_resume_up/down.png</code>，两项读数显示 <code>--</code>，波形停止并清除，状态改为“已暂停”。恢复请求成功且收到新有效值后再显示读数。</li>
+</ol>
+<p>可选：为当前探头详情增加 ID 5 透明热区 <code>(592,4,112,48)</code>，覆盖“探头已接入”状态文字，进入画面 5 的当前状态模式。若当前版本不能可靠地让透明按钮覆盖文字且接收触摸，可先省略此入口，画面 5 仍可从报警记录到达。主控进入前应设置 <code>detail_source=0</code>。</p>
+<table>
+<thead>
+<tr>
+<th align="right">ID</th>
+<th>名称</th>
+<th>类型</th>
+<th align="right">x</th>
+<th align="right">y</th>
+<th align="right">w</th>
+<th align="right">h</th>
+<th>初值/示例与配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">1</td>
+<td>btn_pause</td>
+<td>图片按钮</td>
+<td align="right">16</td>
+<td align="right">396</td>
+<td align="right">183</td>
+<td align="right">68</td>
+<td>暂停监护；切换到画面 4；暂停后用 btn_resume 两态图片替换</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td>btn_trend</td>
+<td>图片按钮</td>
+<td align="right">211</td>
+<td align="right">396</td>
+<td align="right">183</td>
+<td align="right">68</td>
+<td>趋势；切换到画面 1</td>
+</tr>
+<tr>
+<td align="right">3</td>
+<td>btn_alarm</td>
+<td>图片按钮</td>
+<td align="right">406</td>
+<td align="right">396</td>
+<td align="right">183</td>
+<td align="right">68</td>
+<td>报警记录；切换到画面 2</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td>btn_settings</td>
+<td>图片按钮</td>
+<td align="right">601</td>
+<td align="right">396</td>
+<td align="right">183</td>
+<td align="right">68</td>
+<td>设置；切换到画面 3</td>
+</tr>
+<tr>
+<td align="right">10</td>
+<td>txt_spo2</td>
+<td>文本</td>
+<td align="right">35</td>
+<td align="right">114</td>
+<td align="right">164</td>
+<td align="right">74</td>
+<td>98；实际初始化为 --；青蓝；数字高度约 72 px</td>
+</tr>
+<tr>
+<td align="right">11</td>
+<td>txt_pr</td>
+<td>文本</td>
+<td align="right">427</td>
+<td align="right">114</td>
+<td align="right">164</td>
+<td align="right">74</td>
+<td>72；实际初始化为 --；绿色；数字高度约 72 px</td>
+</tr>
+<tr>
+<td align="right">12</td>
+<td>txt_valid</td>
+<td>文本</td>
+<td align="right">307</td>
+<td align="right">88</td>
+<td align="right">66</td>
+<td align="right">22</td>
+<td>测量有效；状态由 MCU 回写，暂停/无效时改变文字和颜色</td>
+</tr>
+<tr>
+<td align="right">13</td>
+<td>txt_spo2_limits</td>
+<td>文本</td>
+<td align="right">35</td>
+<td align="right">192</td>
+<td align="right">212</td>
+<td align="right">20</td>
+<td>报警限值 90–100 %；与设备已确认的报警限值同步</td>
+</tr>
+<tr>
+<td align="right">14</td>
+<td>txt_spo2_state</td>
+<td>文本</td>
+<td align="right">270</td>
+<td align="right">192</td>
+<td align="right">103</td>
+<td align="right">20</td>
+<td>稳定；无效时显示等待信号</td>
+</tr>
+<tr>
+<td align="right">15</td>
+<td>txt_pr_limit</td>
+<td>文本</td>
+<td align="right">427</td>
+<td align="right">192</td>
+<td align="right">210</td>
+<td align="right">20</td>
+<td>报警高限 120 bpm；与设备已确认高限同步</td>
+</tr>
+<tr>
+<td align="right">16</td>
+<td>txt_pr_state</td>
+<td>文本</td>
+<td align="right">650</td>
+<td align="right">192</td>
+<td align="right">115</td>
+<td align="right">20</td>
+<td>脉搏规则；文本表达状态；图标为可选装饰</td>
+</tr>
+<tr>
+<td align="right">17</td>
+<td>txt_quality</td>
+<td>文本</td>
+<td align="right">686</td>
+<td align="right">244</td>
+<td align="right">40</td>
+<td align="right">24</td>
+<td>92；设备质量值；无效时 --</td>
+</tr>
+<tr>
+<td align="right">18</td>
+<td>icon_quality</td>
+<td>图标/图片</td>
+<td align="right">733</td>
+<td align="right">247</td>
+<td align="right">34</td>
+<td align="right">18</td>
+<td>5 格；按质量等级切换图片</td>
+</tr>
+<tr>
+<td align="right">19</td>
+<td>graph_ppg</td>
+<td>曲线</td>
+<td align="right">29</td>
+<td align="right">272</td>
+<td align="right">742</td>
+<td align="right">78</td>
+<td>示例 PPG；实时点由 MCU 发送；不要导入示例波形作为实时曲线</td>
+</tr>
+<tr>
+<td align="right">20</td>
+<td>txt_capture_state</td>
+<td>文本</td>
+<td align="right">33</td>
+<td align="right">355</td>
+<td align="right">390</td>
+<td align="right">20</td>
+<td>脉搏波采集中；暂停时替换状态文字</td>
+</tr>
+<tr>
+<td align="right">21</td>
+<td>txt_duration</td>
+<td>文本</td>
+<td align="right">540</td>
+<td align="right">355</td>
+<td align="right">227</td>
+<td align="right">20</td>
+<td>监护时间 00:23:18；计时由 MCU 更新</td>
+</tr>
+<tr>
+<td align="right">90</td>
+<td>txt_bed</td>
+<td>文本</td>
+<td align="right">160</td>
+<td align="right">16</td>
+<td align="right">98</td>
+<td align="right">23</td>
+<td>床位 01；在同一位置添加床位文字；可省略床形装饰</td>
+</tr>
+<tr>
+<td align="right">91</td>
+<td>txt_probe_header</td>
+<td>文本</td>
+<td align="right">608</td>
+<td align="right">16</td>
+<td align="right">92</td>
+<td align="right">23</td>
+<td>探头已接入；按下面导出的子区域放置；不占用时钟范围</td>
+</tr>
+<tr>
+<td align="right">92</td>
+<td>txt_clock</td>
+<td>RTC/文本</td>
+<td align="right">720</td>
+<td align="right">16</td>
+<td align="right">60</td>
+<td align="right">23</td>
+<td>14:32:08；RTC 配置或 MCU 定时写入</td>
+</tr>
+</tbody></table>
+<h3>4.2 画面 1：趋势分析</h3>
+<p><strong>完成后效果：</strong></p>
+<p><img src="./states/page_1.png" alt="趋势分析"></p>
+<p><strong>实际导入的背景：</strong></p>
+<p><img src="./backgrounds/bg_1.png" alt="画面 1 静态背景"></p>
+<ol>
+<li>导入 <code>bg_1.png</code>，添加三个 122×48 的时段按钮，以及底部返回按钮。</li>
+<li>三个时段按钮设为“开关描述 → 开关”，初始仅 30 分钟处于选中态。选中三个按钮，通过“编辑 → 开关按钮互斥”配置互斥组；实际菜单位置以当前版本为准。</li>
+<li>在这个自锁/互斥配置中，弹起图片用 <code>*_up.png</code>，按下状态图片用 <code>*_selected.png</code>，以保持常驻选中外观；<code>*_down.png</code> 仅供另有独立瞬时反馈机制时使用。不要把自锁选中态当作一次点击后的跳页。</li>
+<li>上下两个趋势区分开配置：SpO₂ 曲线 ID 12 <code>(197,181,558,64)</code>，图中纵轴示例为 90～100；PR 曲线 ID 14 <code>(197,277,558,64)</code>，图中纵轴示例为 60～120。静态坐标只是当前视觉稿的显示量程，不是报警阈值。实际量程变化必须同步更换刻度，越出量程的数据不能悄悄截断。</li>
+<li>以历史曲线控件或主控重放曲线的方式加载数据。切换按钮后，请求真实的 30 分钟/2 小时/8 小时数据，更新横轴时间和“记录时段”。不能只改时间标签而保留旧点序列作为新时段数据。</li>
+<li>下表的 ID 15～18 显示四个横轴时间标签；刻度区在静态背景中预留。ID 4 返回画面 0。</li>
+</ol>
+<p>当前主界面 PNG 的波形是示例，不参与历史记录。趋势曲线如何存储、补点和处理缺测由项目数据层决定；本文的操作结果图只用于确认布局。</p>
+<table>
+<thead>
+<tr>
+<th align="right">ID</th>
+<th>名称</th>
+<th>类型</th>
+<th align="right">x</th>
+<th align="right">y</th>
+<th align="right">w</th>
+<th align="right">h</th>
+<th>初值/示例与配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">1</td>
+<td>btn_range_30</td>
+<td>开关按钮</td>
+<td align="right">115</td>
+<td align="right">80</td>
+<td align="right">122</td>
+<td align="right">48</td>
+<td>30 分钟；与 2、3 互斥；初始选中</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td>btn_range_2h</td>
+<td>开关按钮</td>
+<td align="right">247</td>
+<td align="right">80</td>
+<td align="right">122</td>
+<td align="right">48</td>
+<td>2 小时；选中后请求对应历史数据</td>
+</tr>
+<tr>
+<td align="right">3</td>
+<td>btn_range_8h</td>
+<td>开关按钮</td>
+<td align="right">379</td>
+<td align="right">80</td>
+<td align="right">122</td>
+<td align="right">48</td>
+<td>8 小时；选中后请求对应历史数据</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td>btn_back</td>
+<td>图片按钮</td>
+<td align="right">16</td>
+<td align="right">408</td>
+<td align="right">176</td>
+<td align="right">56</td>
+<td>返回主测量；切换画面 0</td>
+</tr>
+<tr>
+<td align="right">10</td>
+<td>txt_last_spo2</td>
+<td>文本</td>
+<td align="right">35</td>
+<td align="right">190</td>
+<td align="right">62</td>
+<td align="right">42</td>
+<td>98；最近有效值；青蓝</td>
+</tr>
+<tr>
+<td align="right">11</td>
+<td>txt_last_pr</td>
+<td>文本</td>
+<td align="right">35</td>
+<td align="right">299</td>
+<td align="right">62</td>
+<td align="right">42</td>
+<td>72；最近有效值；绿</td>
+</tr>
+<tr>
+<td align="right">12</td>
+<td>graph_spo2_trend</td>
+<td>历史曲线</td>
+<td align="right">197</td>
+<td align="right">181</td>
+<td align="right">558</td>
+<td align="right">64</td>
+<td>90～100 显示量程；青蓝，上图；实际量程变化时更换刻度</td>
+</tr>
+<tr>
+<td align="right">13</td>
+<td>txt_period</td>
+<td>文本</td>
+<td align="right">480</td>
+<td align="right">426</td>
+<td align="right">304</td>
+<td align="right">21</td>
+<td>记录时段 14:02–14:32；随时段和实际时间更新</td>
+</tr>
+<tr>
+<td align="right">14</td>
+<td>graph_pr_trend</td>
+<td>历史曲线</td>
+<td align="right">197</td>
+<td align="right">277</td>
+<td align="right">558</td>
+<td align="right">64</td>
+<td>60～120 显示量程；绿色，下图</td>
+</tr>
+<tr>
+<td align="right">15</td>
+<td>txt_time_0</td>
+<td>文本</td>
+<td align="right">197</td>
+<td align="right">354</td>
+<td align="right">58</td>
+<td align="right">24</td>
+<td>14:02；横轴标签，按实际窗口更新</td>
+</tr>
+<tr>
+<td align="right">16</td>
+<td>txt_time_1</td>
+<td>文本</td>
+<td align="right">363</td>
+<td align="right">354</td>
+<td align="right">58</td>
+<td align="right">24</td>
+<td>14:12；横轴标签，按实际窗口更新</td>
+</tr>
+<tr>
+<td align="right">17</td>
+<td>txt_time_2</td>
+<td>文本</td>
+<td align="right">549</td>
+<td align="right">354</td>
+<td align="right">58</td>
+<td align="right">24</td>
+<td>14:22；横轴标签，按实际窗口更新</td>
+</tr>
+<tr>
+<td align="right">18</td>
+<td>txt_time_3</td>
+<td>文本</td>
+<td align="right">697</td>
+<td align="right">354</td>
+<td align="right">58</td>
+<td align="right">24</td>
+<td>14:32；横轴标签，按实际窗口更新</td>
+</tr>
+<tr>
+<td align="right">90</td>
+<td>txt_bed</td>
+<td>文本</td>
+<td align="right">119</td>
+<td align="right">16</td>
+<td align="right">98</td>
+<td align="right">23</td>
+<td>床位 01；在同一位置添加床位文字；可省略床形装饰</td>
+</tr>
+<tr>
+<td align="right">91</td>
+<td>txt_probe_header</td>
+<td>文本</td>
+<td align="right">608</td>
+<td align="right">16</td>
+<td align="right">92</td>
+<td align="right">23</td>
+<td>探头已接入；按下面导出的子区域放置；不占用时钟范围</td>
+</tr>
+<tr>
+<td align="right">92</td>
+<td>txt_clock</td>
+<td>RTC/文本</td>
+<td align="right">720</td>
+<td align="right">16</td>
+<td align="right">60</td>
+<td align="right">23</td>
+<td>14:32:08；RTC 配置或 MCU 定时写入</td>
+</tr>
+</tbody></table>
+<h3>4.3 画面 2：报警记录</h3>
+<p><strong>完成后效果：</strong></p>
+<p><img src="./states/page_2.png" alt="报警记录"></p>
+<p><strong>实际导入的背景：</strong></p>
+<p><img src="./backgrounds/bg_2.png" alt="画面 2 静态背景"></p>
+<ol>
+<li>导入 <code>bg_2.png</code>，配置“清空记录”按钮进入新建的画面 6，返回按钮进入画面 0。</li>
+<li>添加四行记录显示层，按下面的行内表填入时间、事件、级别和处理状态。正文至少 16 px；颜色与“提示/报警/信息”文字一起表达级别。</li>
+<li>每行按钮或热区的范围为下表 ID 3～6。<code>row_alarm_up/down.png</code> 是<strong>空白行底图</strong>，不含任何示例事件；实际事件必须用文本控件显示。</li>
+<li>若采用透明热区覆盖行内文本，应把热区置于最上层，并在虚拟屏验证点击文字处仍有响应。若当前版本没有可用的透明热区方式，改用能显示整行字符串的单个按钮，或让各列启用相同记录事件；不要用不透明行底图盖住文字。</li>
+<li>点击行后，主控先记录该行对应的记录 ID，更新画面 5 的事件文本，设置 <code>detail_source=2</code>，再进入画面 5。无数据的行应隐藏或禁用，不允许点到上一笔记录。</li>
+<li>清空成功时隐藏全部记录行和其文字层，显示 ID 11“暂无事件记录”，总数改为 <code>0 条</code>。切回有记录状态时反向恢复。</li>
+</ol>
+<p>列表行为需使用当前设备真实的记录集合；文档中的 4 条记录只是视觉示例。</p>
+<table>
+<thead>
+<tr>
+<th align="right">ID</th>
+<th>名称</th>
+<th>类型</th>
+<th align="right">x</th>
+<th align="right">y</th>
+<th align="right">w</th>
+<th align="right">h</th>
+<th>初值/示例与配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">1</td>
+<td>btn_clear</td>
+<td>图片按钮</td>
+<td align="right">634</td>
+<td align="right">74</td>
+<td align="right">150</td>
+<td align="right">52</td>
+<td>清空记录；切换到本指南新增画面 6</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td>btn_back</td>
+<td>图片按钮</td>
+<td align="right">16</td>
+<td align="right">408</td>
+<td align="right">176</td>
+<td align="right">56</td>
+<td>返回主测量；切换画面 0</td>
+</tr>
+<tr>
+<td align="right">3</td>
+<td>row_alarm_1</td>
+<td>记录行热区</td>
+<td align="right">17</td>
+<td align="right">173</td>
+<td align="right">766</td>
+<td align="right">53</td>
+<td>记录 1；选中记录后进入画面 5</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td>row_alarm_2</td>
+<td>记录行热区</td>
+<td align="right">17</td>
+<td align="right">226</td>
+<td align="right">766</td>
+<td align="right">53</td>
+<td>记录 2；同上，记录索引 1</td>
+</tr>
+<tr>
+<td align="right">5</td>
+<td>row_alarm_3</td>
+<td>记录行热区</td>
+<td align="right">17</td>
+<td align="right">279</td>
+<td align="right">766</td>
+<td align="right">53</td>
+<td>记录 3；同上，记录索引 2</td>
+</tr>
+<tr>
+<td align="right">6</td>
+<td>row_alarm_4</td>
+<td>记录行热区</td>
+<td align="right">17</td>
+<td align="right">332</td>
+<td align="right">766</td>
+<td align="right">53</td>
+<td>记录 4；同上，记录索引 3</td>
+</tr>
+<tr>
+<td align="right">10</td>
+<td>txt_event_count</td>
+<td>文本</td>
+<td align="right">96</td>
+<td align="right">88</td>
+<td align="right">43</td>
+<td align="right">24</td>
+<td>4 条；由记录总数回写</td>
+</tr>
+<tr>
+<td align="right">11</td>
+<td>txt_empty</td>
+<td>文本</td>
+<td align="right">240</td>
+<td align="right">250</td>
+<td align="right">320</td>
+<td align="right">36</td>
+<td>暂无事件记录；有记录时隐藏；空列表时显示</td>
+</tr>
+<tr>
+<td align="right">90</td>
+<td>txt_bed</td>
+<td>文本</td>
+<td align="right">119</td>
+<td align="right">16</td>
+<td align="right">98</td>
+<td align="right">23</td>
+<td>床位 01；在同一位置添加床位文字；可省略床形装饰</td>
+</tr>
+<tr>
+<td align="right">91</td>
+<td>txt_probe_header</td>
+<td>文本</td>
+<td align="right">608</td>
+<td align="right">16</td>
+<td align="right">92</td>
+<td align="right">23</td>
+<td>探头已接入；按下面导出的子区域放置；不占用时钟范围</td>
+</tr>
+<tr>
+<td align="right">92</td>
+<td>txt_clock</td>
+<td>RTC/文本</td>
+<td align="right">720</td>
+<td align="right">16</td>
+<td align="right">60</td>
+<td align="right">23</td>
+<td>14:32:08；RTC 配置或 MCU 定时写入</td>
+</tr>
+</tbody></table>
+<p><strong>记录行内部显示控件（四行重复使用）：</strong></p>
+<p>下表中的 y 为 <code>173 + 53×行号</code>，行号从 0 到 3。文本处于行热区内部是有意的显示/触摸叠层；不是两个互相冲突的操作区。先验证层级与点击穿透，再复制四行。</p>
+<table>
+<thead>
+<tr>
+<th align="right">行</th>
+<th align="right">时间 ID</th>
+<th align="right">事件 ID</th>
+<th align="right">级别 ID</th>
+<th align="right">状态 ID</th>
+<th align="right">y</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">1</td>
+<td align="right">20</td>
+<td align="right">21</td>
+<td align="right">22</td>
+<td align="right">23</td>
+<td align="right">173</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td align="right">24</td>
+<td align="right">25</td>
+<td align="right">26</td>
+<td align="right">27</td>
+<td align="right">226</td>
+</tr>
+<tr>
+<td align="right">3</td>
+<td align="right">28</td>
+<td align="right">29</td>
+<td align="right">30</td>
+<td align="right">31</td>
+<td align="right">279</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td align="right">32</td>
+<td align="right">33</td>
+<td align="right">34</td>
+<td align="right">35</td>
+<td align="right">332</td>
+</tr>
+</tbody></table>
+<p>时间区域 <code>(33,y,116,53)</code>；事件区域 <code>(192,y,350,53)</code>；级别区域 <code>(584,y,75,53)</code>；状态区域 <code>(685,y,76,53)</code>。示例时间用 15 px，事件用 16 px，级别与状态 13～14 px；居中或左对齐依照效果图。</p>
+<p>如果采用按钮文字直接显示整行，可省略上表四列文本控件；此时不要重复放置显示层。空列表时连同行热区一并禁用。</p>
+<h3>4.4 画面 3：监护设置</h3>
+<p><strong>完成后效果：</strong></p>
+<p><img src="./states/page_3.png" alt="监护设置"></p>
+<p><strong>实际导入的背景：</strong></p>
+<p><img src="./backgrounds/bg_3.png" alt="画面 3 静态背景"></p>
+<ol>
+<li>导入 <code>bg_3.png</code>。两栏面板、标题、输入框边线、单位与太阳图标已在背景中；不要重复添加框线图片。</li>
+<li>在 SpO₂ 数字区域 <code>(260,147,70,52)</code> 添加文本控件 ID 1；在 PR 数字区域 <code>(260,253,67,52)</code> 添加文本控件 ID 2。前景分别为青蓝与绿，字号约 28 px；数字左对齐、垂直居中。单位已烘焙在背景，文本只写数字。</li>
+<li>设置这两个文本控件的“输入方式”为“弹出系统键盘输入（用户主机可输入）”，“键盘类型”为“小键盘”，整数输入。开启“数值限定”，上下限填写项目确认的产品参数范围。图中 90 和 120 为示例值，本文不把它们定义为临床默认值。</li>
+<li>小键盘建议显示在右半屏以保留左侧原值，具体位置和尺寸以实际键盘资源为准。第 6 节提供位置示意；它不是该版本原生键盘的实机截图，也不是需要导入的页面背景。</li>
+<li>用户确认输入后，主控检查范围并回写已接受值；取消不改值，拒绝时恢复旧值并给出提示。不要仅依赖浏览器预览中的范围；该范围不是设备规格。</li>
+<li>亮度用进度条 ID 10 和关联滑块 ID 11。<strong>关联控件 ID 连续，且进度条 ID 小于滑块 ID</strong>；这是本地教程明确说明的关联要求。参考轨道 <code>(457,193,278,5)</code>，触摸/滑块区域 <code>(457,172,278,48)</code>，滑块指示图为 <code>slider_thumb.png</code>。</li>
+<li>亮度图示用 10～100、初值 80。若实际项目使用这个范围，进度条与滑块应设相同起始/终止值；否则两者和百分比文本一起更改。拖动输入可选择“允许【松开通知】”减少连续通知；在虚拟屏检查值域与位置一致。</li>
+<li>滑动后更新 ID 12，并由主控或核实后的背光指令设置真实亮度。单独改变 ID 12 的数字不改变背光。</li>
+<li>声音使用开关按钮 ID 3。若采用自锁开关，弹起态设为 <code>btn_sound_off_up.png</code>、按下态设为 <code>btn_sound_on_up.png</code>，默认态由主控实际值决定；设备拒绝修改时回写旧状态。若采用主控确认后的图片替换，可使用 on/off 各自的 up/down 两张图。</li>
+<li>声音状态更新后同步改 ID 13。报警声音与“触摸按键提示音”是不同功能，不能仅修改工程的触摸音效来实现报警声音开关。</li>
+</ol>
+<p>本页 <code>field_spo2_up/down</code>、<code>field_pr_up/down</code> 是备用输入框底图。使用当前背景时不必导入；若改为独立框图，需恢复单位文字并避免覆盖数值控件。</p>
+<table>
+<thead>
+<tr>
+<th align="right">ID</th>
+<th>名称</th>
+<th>类型</th>
+<th align="right">x</th>
+<th align="right">y</th>
+<th align="right">w</th>
+<th align="right">h</th>
+<th>初值/示例与配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">1</td>
+<td>txt_spo2_low</td>
+<td>输入文本</td>
+<td align="right">260</td>
+<td align="right">147</td>
+<td align="right">70</td>
+<td align="right">52</td>
+<td>90；使用原生文本控件+系统小键盘；文字另见内框坐标</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td>txt_pr_high</td>
+<td>输入文本</td>
+<td align="right">260</td>
+<td align="right">253</td>
+<td align="right">67</td>
+<td align="right">52</td>
+<td>120；使用原生文本控件+系统小键盘</td>
+</tr>
+<tr>
+<td align="right">3</td>
+<td>btn_alarm_sound</td>
+<td>开关按钮</td>
+<td align="right">641</td>
+<td align="right">257</td>
+<td align="right">124</td>
+<td align="right">56</td>
+<td>开启；常驻开启/关闭状态与手指按压态分开</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td>btn_back</td>
+<td>图片按钮</td>
+<td align="right">16</td>
+<td align="right">408</td>
+<td align="right">176</td>
+<td align="right">56</td>
+<td>返回主测量；切换画面 0</td>
+</tr>
+<tr>
+<td align="right">10</td>
+<td>bar_brightness</td>
+<td>进度条</td>
+<td align="right">457</td>
+<td align="right">193</td>
+<td align="right">278</td>
+<td align="right">5</td>
+<td>80；水平亮度条；11 为关联滑块，连续 ID</td>
+</tr>
+<tr>
+<td align="right">11</td>
+<td>slider_brightness</td>
+<td>滑块</td>
+<td align="right">457</td>
+<td align="right">172</td>
+<td align="right">278</td>
+<td align="right">48</td>
+<td>80；与 10 的视觉层重叠是有意关联；热区高 48</td>
+</tr>
+<tr>
+<td align="right">12</td>
+<td>txt_brightness</td>
+<td>文本</td>
+<td align="right">697</td>
+<td align="right">142</td>
+<td align="right">68</td>
+<td align="right">30</td>
+<td>80%；拖动后更新数值；硬件亮度还需命令</td>
+</tr>
+<tr>
+<td align="right">13</td>
+<td>txt_sound_state</td>
+<td>文本</td>
+<td align="right">427</td>
+<td align="right">337</td>
+<td align="right">338</td>
+<td align="right">31</td>
+<td>声音提示已开启；关闭时改成黄色提示</td>
+</tr>
+<tr>
+<td align="right">90</td>
+<td>txt_bed</td>
+<td>文本</td>
+<td align="right">119</td>
+<td align="right">16</td>
+<td align="right">98</td>
+<td align="right">23</td>
+<td>床位 01；在同一位置添加床位文字；可省略床形装饰</td>
+</tr>
+<tr>
+<td align="right">91</td>
+<td>txt_probe_header</td>
+<td>文本</td>
+<td align="right">608</td>
+<td align="right">16</td>
+<td align="right">92</td>
+<td align="right">23</td>
+<td>探头已接入；按下面导出的子区域放置；不占用时钟范围</td>
+</tr>
+<tr>
+<td align="right">92</td>
+<td>txt_clock</td>
+<td>RTC/文本</td>
+<td align="right">720</td>
+<td align="right">16</td>
+<td align="right">60</td>
+<td align="right">23</td>
+<td>14:32:08；RTC 配置或 MCU 定时写入</td>
+</tr>
+</tbody></table>
+<h3>4.5 画面 4：暂停监护</h3>
+<p><strong>完成后效果：</strong></p>
+<p><img src="./states/page_4.png" alt="暂停监护"></p>
+<p><strong>实际导入的背景：</strong></p>
+<p><img src="./backgrounds/bg_4.png" alt="画面 4 静态背景"></p>
+<ol>
+<li>导入 <code>bg_4.png</code>，放置 ID 1“取消”、ID 2“确认暂停”和 ID 3“返回主测量”。</li>
+<li>取消和返回均切到画面 0，不发送暂停请求。</li>
+<li>确认暂停按钮使用 <code>btn_confirm_up/down.png</code>，触控用途选择可启用事件通知的“开关描述”，操作风格“瞬变”。主控收到有效释放事件后执行暂停。</li>
+<li>主控确认暂停后，回写主界面暂停态并切回画面 0；第 6 节给出了暂停后的完整图。若没有设备确认，停留原状态并显示明确提示，不仅靠跳页假定暂停成功。</li>
+<li>这张图是完整确认页，本指南“子画面”选否；如改为叠加式子画面，应另行验证关闭方式、背景刷新和触摸阻挡。</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th align="right">ID</th>
+<th>名称</th>
+<th>类型</th>
+<th align="right">x</th>
+<th align="right">y</th>
+<th align="right">w</th>
+<th align="right">h</th>
+<th>初值/示例与配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">1</td>
+<td>btn_cancel_pause</td>
+<td>图片按钮</td>
+<td align="right">321</td>
+<td align="right">296</td>
+<td align="right">176</td>
+<td align="right">56</td>
+<td>取消；切换画面 0，不改变监护状态</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td>btn_confirm_pause</td>
+<td>图片按钮</td>
+<td align="right">513</td>
+<td align="right">296</td>
+<td align="right">176</td>
+<td align="right">56</td>
+<td>确认暂停；发送暂停请求，设备确认后回画面 0 暂停态</td>
+</tr>
+<tr>
+<td align="right">3</td>
+<td>btn_back</td>
+<td>图片按钮</td>
+<td align="right">16</td>
+<td align="right">408</td>
+<td align="right">176</td>
+<td align="right">56</td>
+<td>返回主测量；切换画面 0，不改变状态</td>
+</tr>
+<tr>
+<td align="right">10</td>
+<td>txt_pause_context</td>
+<td>文本</td>
+<td align="right">179</td>
+<td align="right">153</td>
+<td align="right">186</td>
+<td align="right">21</td>
+<td>当前床位 01 · 血氧与脉率监护；床位变化时同步</td>
+</tr>
+<tr>
+<td align="right">90</td>
+<td>txt_bed</td>
+<td>文本</td>
+<td align="right">119</td>
+<td align="right">16</td>
+<td align="right">98</td>
+<td align="right">23</td>
+<td>床位 01；在同一位置添加床位文字；可省略床形装饰</td>
+</tr>
+<tr>
+<td align="right">91</td>
+<td>txt_probe_header</td>
+<td>文本</td>
+<td align="right">608</td>
+<td align="right">16</td>
+<td align="right">92</td>
+<td align="right">23</td>
+<td>探头已接入；按下面导出的子区域放置；不占用时钟范围</td>
+</tr>
+<tr>
+<td align="right">92</td>
+<td>txt_clock</td>
+<td>RTC/文本</td>
+<td align="right">720</td>
+<td align="right">16</td>
+<td align="right">60</td>
+<td align="right">23</td>
+<td>14:32:08；RTC 配置或 MCU 定时写入</td>
+</tr>
+</tbody></table>
+<h3>4.6 画面 5：报警与探头状态</h3>
+<p><strong>完成后效果：</strong></p>
+<p><img src="./states/page_5.png" alt="报警与探头状态"></p>
+<p><strong>实际导入的背景：</strong></p>
+<p><img src="./backgrounds/bg_5.png" alt="画面 5 静态背景"></p>
+<ol>
+<li>导入 <code>bg_5.png</code>，添加详情与测量控件；左栏状态标题、说明、右栏有效读数均为动态层。</li>
+<li>当前探头模式：左栏显示“当前状态 / 信号偏弱”等当前信息，返回按钮使用 <code>btn_back_up/down.png</code>，目标为 0。</li>
+<li>历史记录模式：左栏显示“事件详情”、选中事件的时间与处理状态。返回按钮使用 <code>btn_back_alarm_up/down.png</code>，目标为 2。标题变化不会更改画面 ID。</li>
+<li>右栏标题“当前探头状态”已在背景内，表示这里是<strong>当前</strong>信号数据，而不是所选历史事件发生时的测量值。若项目需要历史时刻数据，须更改该标签和数据来源，不能混用。</li>
+<li>ID 16 为显示型进度条，范围 0～100，禁止拖动，背景灰蓝、前景黄色；质量恢复时可按实际状态改颜色。</li>
+<li>“最近有效值”与“最近有效时间”成组更新。如果没有有效历史读数，显示 <code>--</code>；不要把过期值放回主测量区当作当前值。</li>
+<li>详情标题和事件级别可拆成两个文本控件：建议 ID 10 负责左侧标题 <code>(35,91,220,26)</code>，额外 ID 21 显示级别 <code>(307,91,66,26)</code>；状态图标可用本地画图控件或相同线形图标，至少保留文字级别。</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th align="right">ID</th>
+<th>名称</th>
+<th>类型</th>
+<th align="right">x</th>
+<th align="right">y</th>
+<th align="right">w</th>
+<th align="right">h</th>
+<th>初值/示例与配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">1</td>
+<td>btn_back</td>
+<td>图片按钮</td>
+<td align="right">16</td>
+<td align="right">408</td>
+<td align="right">176</td>
+<td align="right">56</td>
+<td>返回主测量/返回报警记录；按来源返回 0 或 2</td>
+</tr>
+<tr>
+<td align="right">10</td>
+<td>txt_detail_title</td>
+<td>文本</td>
+<td align="right">35</td>
+<td align="right">91</td>
+<td align="right">338</td>
+<td align="right">26</td>
+<td>当前状态；历史记录模式显示事件详情</td>
+</tr>
+<tr>
+<td align="right">11</td>
+<td>txt_detail_name</td>
+<td>文本/图标组合</td>
+<td align="right">35</td>
+<td align="right">138</td>
+<td align="right">338</td>
+<td align="right">44</td>
+<td>信号偏弱；按事件显示名称和提示/报警颜色</td>
+</tr>
+<tr>
+<td align="right">12</td>
+<td>txt_detail_advice</td>
+<td>多行文本</td>
+<td align="right">35</td>
+<td align="right">197</td>
+<td align="right">338</td>
+<td align="right">61</td>
+<td>请检查探头佩戴位置，并保持手指静止。；历史模式显示事件时间与状态</td>
+</tr>
+<tr>
+<td align="right">13</td>
+<td>txt_probe</td>
+<td>文本</td>
+<td align="right">302</td>
+<td align="right">292</td>
+<td align="right">71</td>
+<td align="right">23</td>
+<td>已接入；来自当前设备状态</td>
+</tr>
+<tr>
+<td align="right">14</td>
+<td>txt_update</td>
+<td>文本</td>
+<td align="right">35</td>
+<td align="right">331</td>
+<td align="right">338</td>
+<td align="right">20</td>
+<td>状态更新时间 14:32:08；当前状态时间或历史记录标记</td>
+</tr>
+<tr>
+<td align="right">15</td>
+<td>txt_quality</td>
+<td>文本</td>
+<td align="right">690</td>
+<td align="right">139</td>
+<td align="right">36</td>
+<td align="right">43</td>
+<td>42；质量评分，不是血氧值</td>
+</tr>
+<tr>
+<td align="right">16</td>
+<td>bar_quality</td>
+<td>进度条</td>
+<td align="right">427</td>
+<td align="right">192</td>
+<td align="right">338</td>
+<td align="right">7</td>
+<td>42；0–100，仅显示，不允许拖动</td>
+</tr>
+<tr>
+<td align="right">17</td>
+<td>txt_last_spo2</td>
+<td>文本</td>
+<td align="right">648</td>
+<td align="right">226</td>
+<td align="right">117</td>
+<td align="right">30</td>
+<td>98 %；最近有效值</td>
+</tr>
+<tr>
+<td align="right">18</td>
+<td>txt_last_pr</td>
+<td>文本</td>
+<td align="right">648</td>
+<td align="right">273</td>
+<td align="right">117</td>
+<td align="right">30</td>
+<td>72 bpm；最近有效值</td>
+</tr>
+<tr>
+<td align="right">19</td>
+<td>txt_valid_time</td>
+<td>文本</td>
+<td align="right">427</td>
+<td align="right">311</td>
+<td align="right">338</td>
+<td align="right">32</td>
+<td>最近有效时间 14:28:10；与历史值成组更新</td>
+</tr>
+<tr>
+<td align="right">20</td>
+<td>txt_footer</td>
+<td>文本</td>
+<td align="right">370</td>
+<td align="right">426</td>
+<td align="right">414</td>
+<td align="right">21</td>
+<td>等待稳定信号；按当前/历史模式显示</td>
+</tr>
+<tr>
+<td align="right">90</td>
+<td>txt_bed</td>
+<td>文本</td>
+<td align="right">181</td>
+<td align="right">16</td>
+<td align="right">98</td>
+<td align="right">23</td>
+<td>床位 01；在同一位置添加床位文字；可省略床形装饰</td>
+</tr>
+<tr>
+<td align="right">91</td>
+<td>txt_probe_header</td>
+<td>文本</td>
+<td align="right">608</td>
+<td align="right">16</td>
+<td align="right">92</td>
+<td align="right">23</td>
+<td>探头已接入；按下面导出的子区域放置；不占用时钟范围</td>
+</tr>
+<tr>
+<td align="right">92</td>
+<td>txt_clock</td>
+<td>RTC/文本</td>
+<td align="right">720</td>
+<td align="right">16</td>
+<td align="right">60</td>
+<td align="right">23</td>
+<td>14:32:08；RTC 配置或 MCU 定时写入</td>
+</tr>
+</tbody></table>
+<h3>4.7 画面 6：清空记录确认</h3>
+<p>这是一张为 VisualTFT 补齐的确认页，用来替代 HTML 预览中的浏览器原生确认框。页面 0～5 的 ID 不变。</p>
+<p><img src="./states/clear_confirm.png" alt="清空记录确认效果"></p>
+<p><strong>实际导入背景：</strong></p>
+<p><img src="./backgrounds/bg_6.png" alt="清空确认背景"></p>
+<ol>
+<li>新建 ID 6，命名“清空记录确认”，导入 <code>bg_6.png</code>。</li>
+<li>ID 1“取消”使用 <code>btn_cancel_up/down.png</code>，目标画面 2；ID 3“返回报警记录”使用 <code>btn_back_alarm_up/down.png</code>，目标画面 2。</li>
+<li>ID 2“确认清空”使用 <code>btn_confirm_clear_up/down.png</code>，瞬变+事件通知，由主控执行记录清空。清空成功后回写画面 2 的总数和空状态，再返回画面 2。</li>
+<li>等待确认期间避免重复触发；失败时保留记录并显示失败信息。取消与返回不删除任何记录。</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th align="right">ID</th>
+<th>名称</th>
+<th>类型</th>
+<th align="right">x</th>
+<th align="right">y</th>
+<th align="right">w</th>
+<th align="right">h</th>
+<th>配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">1</td>
+<td>btn_cancel_clear</td>
+<td>图片按钮</td>
+<td align="right">321</td>
+<td align="right">296</td>
+<td align="right">176</td>
+<td align="right">56</td>
+<td>目标画面 2</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td>btn_confirm_clear</td>
+<td>图片按钮</td>
+<td align="right">513</td>
+<td align="right">296</td>
+<td align="right">176</td>
+<td align="right">56</td>
+<td>发送清空请求，确认后返回 2</td>
+</tr>
+<tr>
+<td align="right">3</td>
+<td>btn_back_alarm</td>
+<td>图片按钮</td>
+<td align="right">16</td>
+<td align="right">408</td>
+<td align="right">176</td>
+<td align="right">56</td>
+<td>目标画面 2</td>
+</tr>
+<tr>
+<td align="right">10</td>
+<td>txt_clear_context</td>
+<td>文本</td>
+<td align="right">179</td>
+<td align="right">153</td>
+<td align="right">260</td>
+<td align="right">21</td>
+<td>当前床位 01 · 事件记录</td>
+</tr>
+<tr>
+<td align="right">90</td>
+<td>txt_bed</td>
+<td>文本</td>
+<td align="right">160</td>
+<td align="right">16</td>
+<td align="right">98</td>
+<td align="right">23</td>
+<td>床位 01，位置与本页标题右侧保持间距</td>
+</tr>
+<tr>
+<td align="right">91</td>
+<td>txt_probe_header</td>
+<td>文本</td>
+<td align="right">608</td>
+<td align="right">16</td>
+<td align="right">92</td>
+<td align="right">23</td>
+<td>探头状态</td>
+</tr>
+<tr>
+<td align="right">92</td>
+<td>txt_clock</td>
+<td>RTC/文本</td>
+<td align="right">720</td>
+<td align="right">16</td>
+<td align="right">60</td>
+<td align="right">23</td>
+<td>时钟</td>
+</tr>
+</tbody></table>
+<h2>5. 所有按钮及小素材图片</h2>
+<p>下表图片按真实尺寸展示；点击图片可打开文件。<strong>同名资源只导入一次即可在多页复用</strong>。图片的自动资源编号可能因导入顺序改变，因此本文以文件名对应，不预设资源编号。</p>
+<table>
+<thead>
+<tr>
+<th>文件前缀 / 用途</th>
+<th>尺寸</th>
+<th>弹起态</th>
+<th>瞬时按压态</th>
+<th>完成操作后的画面/状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>btn_pause</code><br>暂停监护</td>
+<td>183×68</td>
+<td><img src="./buttons/btn_pause_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_pause_down.png" alt="按压态"></td>
+<td>画面 4，暂停确认</td>
+</tr>
+<tr>
+<td><code>btn_trend</code><br>趋势</td>
+<td>183×68</td>
+<td><img src="./buttons/btn_trend_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_trend_down.png" alt="按压态"></td>
+<td>画面 1，趋势</td>
+</tr>
+<tr>
+<td><code>btn_alarm</code><br>报警记录</td>
+<td>183×68</td>
+<td><img src="./buttons/btn_alarm_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_alarm_down.png" alt="按压态"></td>
+<td>画面 2，报警记录</td>
+</tr>
+<tr>
+<td><code>btn_settings</code><br>设置</td>
+<td>183×68</td>
+<td><img src="./buttons/btn_settings_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_settings_down.png" alt="按压态"></td>
+<td>画面 3，设置</td>
+</tr>
+<tr>
+<td><code>btn_back</code><br>返回主测量</td>
+<td>176×56</td>
+<td><img src="./buttons/btn_back_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_back_down.png" alt="按压态"></td>
+<td>画面 0</td>
+</tr>
+<tr>
+<td><code>btn_confirm</code><br>确认暂停</td>
+<td>176×56</td>
+<td><img src="./buttons/btn_confirm_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_confirm_down.png" alt="按压态"></td>
+<td>主控确认后画面 0 暂停态</td>
+</tr>
+<tr>
+<td><code>btn_cancel</code><br>取消</td>
+<td>176×56</td>
+<td><img src="./buttons/btn_cancel_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_cancel_down.png" alt="按压态"></td>
+<td>画面 4 中回 0；画面 6 中回 2</td>
+</tr>
+<tr>
+<td><code>btn_clear</code><br>清空记录</td>
+<td>150×52</td>
+<td><img src="./buttons/btn_clear_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_clear_down.png" alt="按压态"></td>
+<td>画面 6，清空确认</td>
+</tr>
+<tr>
+<td><code>btn_resume</code><br>恢复监护</td>
+<td>183×68</td>
+<td><img src="./buttons/btn_resume_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_resume_down.png" alt="按压态"></td>
+<td>恢复后仍在画面 0，等待新有效数据</td>
+</tr>
+<tr>
+<td><code>btn_range_30</code><br>30 分钟</td>
+<td>122×48</td>
+<td><img src="./buttons/btn_range_30_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_range_30_down.png" alt="按压态"></td>
+<td>画面 1，30 分钟状态</td>
+</tr>
+<tr>
+<td><code>btn_range_2h</code><br>2 小时</td>
+<td>122×48</td>
+<td><img src="./buttons/btn_range_2h_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_range_2h_down.png" alt="按压态"></td>
+<td>画面 1，2 小时状态</td>
+</tr>
+<tr>
+<td><code>btn_range_8h</code><br>8 小时</td>
+<td>122×48</td>
+<td><img src="./buttons/btn_range_8h_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_range_8h_down.png" alt="按压态"></td>
+<td>画面 1，8 小时状态</td>
+</tr>
+<tr>
+<td><code>btn_back_alarm</code><br>返回报警记录</td>
+<td>176×56</td>
+<td><img src="./buttons/btn_back_alarm_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_back_alarm_down.png" alt="按压态"></td>
+<td>画面 2</td>
+</tr>
+<tr>
+<td><code>btn_confirm_clear</code><br>确认清空</td>
+<td>176×56</td>
+<td><img src="./buttons/btn_confirm_clear_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_confirm_clear_down.png" alt="按压态"></td>
+<td>清空成功后画面 2 空列表</td>
+</tr>
+<tr>
+<td><code>btn_sound_on</code><br>报警声音：开启</td>
+<td>124×56</td>
+<td><img src="./buttons/btn_sound_on_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_sound_on_down.png" alt="按压态"></td>
+<td>请求关闭 → 画面 3 关闭态</td>
+</tr>
+<tr>
+<td><code>btn_sound_off</code><br>报警声音：关闭</td>
+<td>124×56</td>
+<td><img src="./buttons/btn_sound_off_up.png" alt="弹起态"></td>
+<td><img src="./buttons/btn_sound_off_down.png" alt="按压态"></td>
+<td>请求开启 → 画面 3 开启态</td>
+</tr>
+<tr>
+<td><code>field_spo2</code><br>SpO₂ 输入框底图</td>
+<td>124×56</td>
+<td><img src="./buttons/field_spo2_up.png" alt="弹起态"></td>
+<td><img src="./buttons/field_spo2_down.png" alt="按压态"></td>
+<td>文本控件调用系统小键盘</td>
+</tr>
+<tr>
+<td><code>field_pr</code><br>PR 输入框底图</td>
+<td>124×56</td>
+<td><img src="./buttons/field_pr_up.png" alt="弹起态"></td>
+<td><img src="./buttons/field_pr_down.png" alt="按压态"></td>
+<td>文本控件调用系统小键盘</td>
+</tr>
+<tr>
+<td><code>row_alarm</code><br>报警记录行底图</td>
+<td>766×53</td>
+<td><img src="./buttons/row_alarm_up.png" alt="弹起态"></td>
+<td><img src="./buttons/row_alarm_down.png" alt="按压态"></td>
+<td>画面 5，对应行的事件详情</td>
+</tr>
+</tbody></table>
+<h3>5.1 趋势按钮的常驻选中态</h3>
+<p>互斥按钮配置的“按下状态”使用下面的 <code>selected</code> 图片，它会保持到另一个选项被选中。普通 <code>_down</code> 图片仅是较亮的按压反馈，不额外代表一个时间范围。</p>
+<table>
+<thead>
+<tr>
+<th>选中范围</th>
+<th>选中态图片</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>30 分钟</td>
+<td><img src="./buttons/btn_range_30_selected.png" alt="30 分钟选中态"></td>
+</tr>
+<tr>
+<td>2 小时</td>
+<td><img src="./buttons/btn_range_2h_selected.png" alt="2 小时选中态"></td>
+</tr>
+<tr>
+<td>8 小时</td>
+<td><img src="./buttons/btn_range_8h_selected.png" alt="8 小时选中态"></td>
+</tr>
+</tbody></table>
+<h3>5.2 信号质量与滑块素材</h3>
+<p>信号条图标是离散显示资源，编号只是图形亮起格数；具体质量算法和分级由主控决定。滑块指示器的视觉图片小于操作热区，保持 48 px 高的可触摸区域。</p>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>尺寸</th>
+<th>图片</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>quality_0.png</code></td>
+<td>34×18</td>
+<td><img src="./buttons/quality_0.png" alt="质量 0 格"></td>
+</tr>
+<tr>
+<td><code>quality_1.png</code></td>
+<td>34×18</td>
+<td><img src="./buttons/quality_1.png" alt="质量 1 格"></td>
+</tr>
+<tr>
+<td><code>quality_2.png</code></td>
+<td>34×18</td>
+<td><img src="./buttons/quality_2.png" alt="质量 2 格"></td>
+</tr>
+<tr>
+<td><code>quality_3.png</code></td>
+<td>34×18</td>
+<td><img src="./buttons/quality_3.png" alt="质量 3 格"></td>
+</tr>
+<tr>
+<td><code>quality_4.png</code></td>
+<td>34×18</td>
+<td><img src="./buttons/quality_4.png" alt="质量 4 格"></td>
+</tr>
+<tr>
+<td><code>quality_5.png</code></td>
+<td>34×18</td>
+<td><img src="./buttons/quality_5.png" alt="质量 5 格"></td>
+</tr>
+<tr>
+<td><code>slider_thumb.png</code></td>
+<td>18×18</td>
+<td><img src="./buttons/slider_thumb.png" alt="滑块指示器"></td>
+</tr>
+</tbody></table>
+<p>素材总览：<a href="./illustrations/button_atlas.png">打开全部按钮及小素材总览</a></p>
+<h2>6. 每个操作后的界面图</h2>
+<p>以下图区显示的是<strong>点击完成后的结果</strong>。按钮手指按住时的外观见第 5 节。没有跳转的按钮也列出其状态变化；多个按钮返回同一页面时复用同一张图。</p>
+<h3>6.1 操作到结果的完整对应表</h3>
+<table>
+<thead>
+<tr>
+<th>所在页/控件</th>
+<th>操作</th>
+<th>结果</th>
+<th>结果图位置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0 暂停监护</td>
+<td>点击</td>
+<td>进入画面 4</td>
+<td>4.5 的效果图</td>
+</tr>
+<tr>
+<td>0 趋势</td>
+<td>点击</td>
+<td>进入画面 1，默认 30 分钟</td>
+<td>4.2 的效果图</td>
+</tr>
+<tr>
+<td>0 报警记录</td>
+<td>点击</td>
+<td>进入画面 2</td>
+<td>4.3 的效果图</td>
+</tr>
+<tr>
+<td>0 设置</td>
+<td>点击</td>
+<td>进入画面 3</td>
+<td>4.4 的效果图</td>
+</tr>
+<tr>
+<td>0 恢复监护</td>
+<td>设备确认</td>
+<td>留在画面 0，先等待有效值</td>
+<td>4.1 为获得有效值后的效果</td>
+</tr>
+<tr>
+<td>1 30 分钟</td>
+<td>点击</td>
+<td>同页选中 30 分钟</td>
+<td>4.2 的效果图</td>
+</tr>
+<tr>
+<td>1 2 小时</td>
+<td>点击</td>
+<td>同页换时段</td>
+<td>6.3</td>
+</tr>
+<tr>
+<td>1 8 小时</td>
+<td>点击</td>
+<td>同页换时段</td>
+<td>6.3</td>
+</tr>
+<tr>
+<td>1/2/3 返回主测量</td>
+<td>点击</td>
+<td>回画面 0</td>
+<td>4.1；若仍暂停应回暂停态</td>
+</tr>
+<tr>
+<td>2 清空记录</td>
+<td>点击</td>
+<td>进入画面 6</td>
+<td>4.7</td>
+</tr>
+<tr>
+<td>2 第 1/2/3/4 行</td>
+<td>点击</td>
+<td>进入画面 5，显示对应事件</td>
+<td>6.6 的四张图</td>
+</tr>
+<tr>
+<td>3 SpO₂ 数字框</td>
+<td>点击</td>
+<td>弹出小键盘</td>
+<td>6.4 示意</td>
+</tr>
+<tr>
+<td>3 PR 数字框</td>
+<td>点击</td>
+<td>弹出小键盘</td>
+<td>6.4 示意</td>
+</tr>
+<tr>
+<td>小键盘数字键</td>
+<td>点击</td>
+<td>编辑输入缓冲，未提交设备值</td>
+<td>依原生键盘显示</td>
+</tr>
+<tr>
+<td>小键盘确认</td>
+<td>点击</td>
+<td>校验并请求更新，确认后关闭键盘</td>
+<td>6.4 的两个更新示例</td>
+</tr>
+<tr>
+<td>小键盘取消</td>
+<td>点击</td>
+<td>关闭键盘、原值不变</td>
+<td>4.4 的原始设置图</td>
+</tr>
+<tr>
+<td>3 亮度滑块</td>
+<td>拖动并松开</td>
+<td>留在画面 3，回写亮度百分比</td>
+<td>6.5</td>
+</tr>
+<tr>
+<td>3 报警声音开启</td>
+<td>点击、设备确认</td>
+<td>同页关闭态</td>
+<td>6.5</td>
+</tr>
+<tr>
+<td>3 报警声音关闭</td>
+<td>点击、设备确认</td>
+<td>同页开启态</td>
+<td>4.4</td>
+</tr>
+<tr>
+<td>4 取消/返回</td>
+<td>点击</td>
+<td>画面 0，监护状态不变</td>
+<td>4.1</td>
+</tr>
+<tr>
+<td>4 确认暂停</td>
+<td>设备确认</td>
+<td>画面 0 暂停态</td>
+<td>6.2</td>
+</tr>
+<tr>
+<td>5 返回报警记录</td>
+<td>点击</td>
+<td>画面 2</td>
+<td>4.3</td>
+</tr>
+<tr>
+<td>5 返回主测量</td>
+<td>点击</td>
+<td>画面 0</td>
+<td>4.1</td>
+</tr>
+<tr>
+<td>6 取消/返回报警记录</td>
+<td>点击</td>
+<td>画面 2，记录保留</td>
+<td>4.3</td>
+</tr>
+<tr>
+<td>6 确认清空</td>
+<td>设备确认</td>
+<td>画面 2 空列表</td>
+<td>6.7</td>
+</tr>
+</tbody></table>
+<p>切换离开主界面不会自动恢复监护。暂停标志由主控持有，返回时应重新读取当前状态。</p>
+<h3>6.2 确认暂停后的主界面</h3>
+<p><img src="./states/main_paused.png" alt="已暂停主界面"></p>
+<p>恢复按钮成功响应后，先显示等待信号/<code>--</code>，获得新有效读数后才回到第 4.1 节示例。不要立即把暂停前的读数当作实时数据恢复。</p>
+<h3>6.3 趋势时段变化</h3>
+<p><strong>2 小时：</strong></p>
+<p><img src="./states/trend_2h.png" alt="2 小时趋势"></p>
+<p><strong>8 小时：</strong></p>
+<p><img src="./states/trend_8h.png" alt="8 小时趋势"></p>
+<p>两张图是同页布局示例；真实工程需要从相应时间范围读取历史数据。</p>
+<h3>6.4 数值输入：键盘位置与确认后的状态</h3>
+<p>键盘图为布局示意，<strong>不是实际 VisualTFT 系统键盘截图，也不应作为 800×480 背景导入</strong>。软件内置键盘的按键、字体、退格和输入框由当前版本决定。若要完全相同的深色键盘皮肤，可依本地《自定义系统键盘》教程另建键盘资源，但这不影响先使用原生小键盘完成输入。</p>
+<p><strong>点击 SpO₂ 数字：</strong></p>
+<p><img src="./illustrations/spo2_keyboard.png" alt="SpO₂ 系统小键盘位置示意"></p>
+<p><strong>点击 PR 数字：</strong></p>
+<p><img src="./illustrations/pr_keyboard.png" alt="PR 系统小键盘位置示意"></p>
+<p><strong>示例：SpO₂ 输入 92 并获设备接受：</strong></p>
+<p><img src="./states/spo2_92.png" alt="SpO₂ 值更新示例"></p>
+<p><strong>示例：PR 输入 130 并获设备接受：</strong></p>
+<p><img src="./states/pr_130.png" alt="PR 值更新示例"></p>
+<p>以上 92/130 仅用于展示值变化，不构成使用建议；最终可输入范围来自项目规格。</p>
+<h3>6.5 设置页的声音与亮度变化</h3>
+<p><strong>报警声音关闭：</strong></p>
+<p><img src="./states/sound_off.png" alt="报警声音关闭"></p>
+<p><strong>亮度显示 60%：</strong></p>
+<p><img src="./states/brightness_60.png" alt="亮度 60% 示例"></p>
+<p>亮度示例图只显示滑块位置和数字变化，未模拟整张图片变暗。实际背光应在设备上检验。</p>
+<h3>6.6 点击四条记录后分别显示的详情</h3>
+<p>画面 ID 均为 5，只更换左侧事件内容；右侧明确标记为当前探头信息。</p>
+<p><strong>第 1 行：低信号质量</strong></p>
+<p><img src="./states/event_1.png" alt="低信号质量详情"></p>
+<p><strong>第 2 行：探头重新接入</strong></p>
+<p><img src="./states/event_2.png" alt="探头重新接入详情"></p>
+<p><strong>第 3 行：SpO₂ 低于 90%</strong></p>
+<p><img src="./states/event_3.png" alt="SpO₂ 低于 90%详情"></p>
+<p><strong>第 4 行：监护已暂停</strong></p>
+<p><img src="./states/event_4.png" alt="监护已暂停详情"></p>
+<h3>6.7 清空确认后的报警列表</h3>
+<p><img src="./states/alarm_empty.png" alt="清空记录后空列表"></p>
+<p>“取消”不进入此状态，应回到保留原记录的画面 2。</p>
+<h2>7. 绘制完成后的验证步骤</h2>
+<h3>7.1 在 VisualTFT 虚拟屏中</h3>
+<ol>
+<li>编译工程并检查资源/字体缺失提示，打开虚拟串口屏。</li>
+<li>核对每页背景都是 800×480，无裁切、缩放、左下角调试编号，也无重复按钮文字。</li>
+<li>长按一个普通按钮，确认出现 <code>_down</code> 外观；松开后执行一次动作。若图片错位，检查是否误勾选“裁剪”。</li>
+<li>从首页依次进入趋势、报警、设置、暂停确认，再验证返回；画面 5 分别从当前状态和历史记录进入时返回来源正确。</li>
+<li>趋势只允许一个时段处于选中态。核对选中资源是 <code>selected</code>，并检查实际数据与横轴是否一起更新。</li>
+<li>点击两个数值框，检查小键盘位置、取消、确认、空输入、非整数和超限输入。阈值回写后应同步首页显示的限值。</li>
+<li>亮度检查最小值、中值、最大值，确认进度条与滑块同值域。亮度条/滑块关联允许视觉重叠，但不要再覆盖一个会吞触摸的图片控件。</li>
+<li>声音开关测试开启、关闭与主控拒绝时回滚；触摸提示音不应代替报警声音功能。</li>
+<li>报警每行验证进入对应记录。空记录行不可触发历史详情；清空取消后记录仍在，确认后才消失。</li>
+<li>暂停时数值为 <code>--</code>，恢复时等待新有效读数。主控未确认的动作不应被显示为成功。</li>
+</ol>
+<h3>7.2 本次文件检查与实物边界</h3>
+<p>本次已通过脚本核对全部 PNG 尺寸、MD 图片链接、文件存在性和控件矩形边界。主要触控按钮和数值输入区域至少 48 px 高；关联亮度进度条和滑块是有意叠层。报警列表是连续行热区，原设计行间距为 0，不满足独立按钮常用的 8 px 间隔，需在实物上检查相邻行误触；必要时拉开行距或减少可见行数。</p>
+<p><strong>尚需你在实际 VisualTFT 与屏上验证：</strong> 型号/固件匹配、字库字形、PNG 透明边缘、控件层级、真实曲线刷新、串口通知、设备状态确认及背光控制。本文没有声称已经执行这些设备侧测试。</p>
+<h3>7.3 常见问题</h3>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>按钮只有一部分/图片偏移</td>
+<td>独立切图取消“裁剪”，控件 w/h 与 PNG 一致</td>
+</tr>
+<tr>
+<td>文字叠了两层</td>
+<td>图片按钮“文字状态”设为否；背景里已有的静态文字不重复添加</td>
+</tr>
+<tr>
+<td>98/72 一直留在画面里</td>
+<td>导错了完整效果图；替换为 <code>backgrounds/bg_N.png</code></td>
+</tr>
+<tr>
+<td>数字刷新残影</td>
+<td>用匹配面板底色的单色文本背景，或核对控件背景恢复；不要只覆盖新字形</td>
+</tr>
+<tr>
+<td>趋势按钮松开后没有选中状态</td>
+<td>检查开关/互斥配置，按下状态资源应为 <code>selected</code></td>
+</tr>
+<tr>
+<td>滑块与进度条不联动</td>
+<td>确认 ID 连续、进度条 ID 小于滑块 ID，两者范围一致</td>
+</tr>
+<tr>
+<td>声音图标变了但设备没变</td>
+<td>检查 MCU 事件处理和状态回写；界面变化不等于设备动作</td>
+</tr>
+<tr>
+<td>报警行点了没反应</td>
+<td>检查覆盖文字或底图是否挡住热区、无数据行是否误禁用</td>
+</tr>
+<tr>
+<td>进入详情后返回错页</td>
+<td>存储详情来源，分别使用回 0 或回 2 的行为</td>
+</tr>
+<tr>
+<td>图片颜色/透明角异常</td>
+<td>核对固件支持；需要不透明素材时，用本页底色合成圆角外像素再导入</td>
+</tr>
+<tr>
+<td>SpO₂ 的下标无法用字库显示</td>
+<td>静态标题保留 PNG；动态文字用 <code>SpO2</code> 或有该字符的字库</td>
+</tr>
+</tbody></table>
+<h3>7.4 资源容量与导入数量</h3>
+<p>7 张背景和 48 张按钮/小素材 PNG 合计 <strong>200.7 KiB</strong> 的源文件。若全部按无压缩 RGB565 估算，像素存储约 <strong>5.95 MiB</strong>；这只是估算，实际编译资源还受压缩、对齐、字库和平台格式影响，应以 VisualTFT 编译后的占用为准。</p>
+<p><code>states</code> 完整效果图、<code>illustrations</code> 示意和总览不需要下载到屏中。备用输入框图片以及没有使用的瞬时按压资源也可不导入，以节省空间。</p>
+<h2>8. 资料来源与版本差异</h2>
+<p>配置依据优先使用你本地 M 系列开发包中的官方教程。下列 PDF 是核对来源，不是需要导入工程的素材。页码指 PDF 页序号，部分文档的印刷页码与它不同。</p>
+<ul>
+<li><p>工程技术笔记-按钮控件的应用v1.0.pdf（见你的 M 系列开发包）：按钮控件：PDF 第 9～12 页属性与页面切换，第 21～22 页互斥配置；核对触控用途、目标画面、裁剪和操作风格。</p>
+</li>
+<li><p>工程技术笔记-文本控件应用 v1.0.pdf（见你的 M 系列开发包）：文本控件：第 5 章属性和第 6 章输入实例；核对系统小键盘、输入方式、对齐和数值限定。</p>
+</li>
+<li><p>工程技术笔记-进度条控件应用 v1.0.pdf（见你的 M 系列开发包）：进度条：PDF 第 9～10 页属性，第 13 页说明关联进度条/滑块 ID 的连续关系。</p>
+</li>
+<li><p>4.【串口屏】如何实现提示框功能_V1.0.pdf（见你的 M 系列开发包）：提示框：PDF 第 9～10 页说明完整画面与子画面的区别；本指南采用完整页。</p>
+</li>
+<li><p>8.【串口屏】自定义系统键盘_V1.1.pdf（见你的 M 系列开发包）：自定义系统键盘：PDF 第 1～3 页提供制作、导出和使用方法；本指南默认原生小键盘。</p>
+</li>
+<li><p>3.M系列入门手册V1.0.pdf（见你的 M 系列开发包）：M 系列入门手册：用于工程创建、下载和虚拟屏流程参考。</p>
+</li>
+<li><p>工程技术笔记-曲线控件应用 v1.0.pdf（见你的 M 系列开发包）：曲线控件：用于实时点显示、数据更新和属性配置参考。</p>
+</li>
+</ul>
+<p>官方在线对应说明：<a href="https://doc.gz-dc.com/Control/01_button.html">按钮控件</a>、<a href="https://doc.gz-dc.com/Control/02_displayText.html">文本控件</a>。不同系列的属性选项、字库和键盘资源可能不同，最终以本工程选定平台的属性窗口及对应教程为准。</p>
+<h3>8.1 重新生成本指南素材</h3>
+<p>维护源码为原 HTML 预览；本指南不改变已有 VisualTFT 私有工程。需要重新导出时，在项目根目录使用本机 Node.js 运行 <code>visualtft_spo2/tools/build_visualtft_guide.cjs</code>，再用 Python 运行 <code>visualtft_spo2/tools/write_visualtft_guide.py</code>。Node 需能找到 Playwright、Sharp 及 Chrome；当前脚本使用本机已有运行环境。</p>
+<p>背景中不包含动态数值和操作按钮；效果图中的时间、阈值和记录都是示例。正文控件表是绘制依据，实际设备协议映射由你的工程维护。</p>
+</main></html>

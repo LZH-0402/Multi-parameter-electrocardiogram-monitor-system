@@ -1,0 +1,27 @@
+<Resource>
+    <pages>
+        <page name="首页(Home_Page)" id="0" />
+        <page name="线圈(Coils)" id="1" />
+        <page name="离散输入(Discrete_Input)" id="2" />
+        <page name="保持寄存器(Holding_Register)" id="3" />
+        <page name="输入寄存器(Input_Register)" id="4" />
+        <page name="系统变量(System_Variables)" id="5" />
+    </pages>
+    <images>
+        <image id="0" url="f:\多参数心电监护仪系统-样机开发\文档资料\医疗检测仪资料\医疗检测仪资料\m系列串口屏开发包v3.2\m系列串口屏开发包v3.2\2. 技术资料\2.【modbus通讯】串口屏_modbus资料\1.modbus教程1_入门教程\modbus教程_入门教程\modbus教程_入门教程\Images\1按下.jpg" width="800" height="480" crop="0" effect_left="0" effect_top="0" effect_width="800" effect_height="480" size="768000" />
+        <image id="1" url="f:\多参数心电监护仪系统-样机开发\文档资料\医疗检测仪资料\医疗检测仪资料\m系列串口屏开发包v3.2\m系列串口屏开发包v3.2\2. 技术资料\2.【modbus通讯】串口屏_modbus资料\1.modbus教程1_入门教程\modbus教程_入门教程\modbus教程_入门教程\Images\1.jpg" width="800" height="480" crop="0" effect_left="0" effect_top="0" effect_width="800" effect_height="480" size="768000" />
+        <image id="2" url="f:\多参数心电监护仪系统-样机开发\文档资料\医疗检测仪资料\医疗检测仪资料\m系列串口屏开发包v3.2\m系列串口屏开发包v3.2\2. 技术资料\2.【modbus通讯】串口屏_modbus资料\1.modbus教程1_入门教程\modbus教程_入门教程\modbus教程_入门教程\Images\2.jpg" width="800" height="480" crop="0" effect_left="0" effect_top="0" effect_width="800" effect_height="480" size="768000" />
+        <image id="3" url="f:\多参数心电监护仪系统-样机开发\文档资料\医疗检测仪资料\医疗检测仪资料\m系列串口屏开发包v3.2\m系列串口屏开发包v3.2\2. 技术资料\2.【modbus通讯】串口屏_modbus资料\1.modbus教程1_入门教程\modbus教程_入门教程\modbus教程_入门教程\Images\2按下.jpg" width="800" height="480" crop="0" effect_left="0" effect_top="0" effect_width="800" effect_height="480" size="768000" />
+        <image id="4" url="f:\多参数心电监护仪系统-样机开发\文档资料\医疗检测仪资料\医疗检测仪资料\m系列串口屏开发包v3.2\m系列串口屏开发包v3.2\2. 技术资料\2.【modbus通讯】串口屏_modbus资料\1.modbus教程1_入门教程\modbus教程_入门教程\modbus教程_入门教程\Images\3.jpg" width="800" height="480" crop="0" effect_left="0" effect_top="0" effect_width="800" effect_height="480" size="768000" />
+        <image id="5" url="f:\多参数心电监护仪系统-样机开发\文档资料\医疗检测仪资料\医疗检测仪资料\m系列串口屏开发包v3.2\m系列串口屏开发包v3.2\2. 技术资料\2.【modbus通讯】串口屏_modbus资料\1.modbus教程1_入门教程\modbus教程_入门教程\modbus教程_入门教程\Images\green&amp;red].ICON" width="50" height="50" crop="0" effect_left="0" effect_top="0" effect_width="50" effect_height="50" size="10000" />
+        <image id="6" url="f:\多参数心电监护仪系统-样机开发\文档资料\医疗检测仪资料\医疗检测仪资料\m系列串口屏开发包v3.2\m系列串口屏开发包v3.2\2. 技术资料\2.【modbus通讯】串口屏_modbus资料\1.modbus教程1_入门教程\modbus教程_入门教程\modbus教程_入门教程\Images\3按下.jpg" width="800" height="480" crop="0" effect_left="0" effect_top="0" effect_width="800" effect_height="480" size="768000" />
+        <image id="7" url="f:\多参数心电监护仪系统-样机开发\文档资料\医疗检测仪资料\医疗检测仪资料\m系列串口屏开发包v3.2\m系列串口屏开发包v3.2\2. 技术资料\2.【modbus通讯】串口屏_modbus资料\1.modbus教程1_入门教程\modbus教程_入门教程\modbus教程_入门教程\Images\4.jpg" width="800" height="480" crop="0" effect_left="0" effect_top="0" effect_width="800" effect_height="480" size="768000" />
+        <image id="8" url="f:\多参数心电监护仪系统-样机开发\文档资料\医疗检测仪资料\医疗检测仪资料\m系列串口屏开发包v3.2\m系列串口屏开发包v3.2\2. 技术资料\2.【modbus通讯】串口屏_modbus资料\1.modbus教程1_入门教程\modbus教程_入门教程\modbus教程_入门教程\Images\4按下.jpg" width="800" height="480" crop="0" effect_left="0" effect_top="0" effect_width="800" effect_height="480" size="768000" />
+        <image id="9" url="f:\多参数心电监护仪系统-样机开发\文档资料\医疗检测仪资料\医疗检测仪资料\m系列串口屏开发包v3.2\m系列串口屏开发包v3.2\2. 技术资料\2.【modbus通讯】串口屏_modbus资料\1.modbus教程1_入门教程\modbus教程_入门教程\modbus教程_入门教程\Images\5.jpg" width="800" height="480" crop="0" effect_left="0" effect_top="0" effect_width="800" effect_height="480" size="768000" />
+        <image id="10" url="f:\多参数心电监护仪系统-样机开发\文档资料\医疗检测仪资料\医疗检测仪资料\m系列串口屏开发包v3.2\m系列串口屏开发包v3.2\2. 技术资料\2.【modbus通讯】串口屏_modbus资料\1.modbus教程1_入门教程\modbus教程_入门教程\modbus教程_入门教程\Images\6.jpg" width="800" height="480" crop="0" effect_left="0" effect_top="0" effect_width="800" effect_height="480" size="768000" />
+        <image id="11" url="f:\多参数心电监护仪系统-样机开发\文档资料\医疗检测仪资料\医疗检测仪资料\m系列串口屏开发包v3.2\m系列串口屏开发包v3.2\2. 技术资料\2.【modbus通讯】串口屏_modbus资料\1.modbus教程1_入门教程\modbus教程_入门教程\modbus教程_入门教程\Images\6按下.jpg" width="800" height="480" crop="0" effect_left="0" effect_top="0" effect_width="800" effect_height="480" size="768000" />
+        <image id="12" url="f:\多参数心电监护仪系统-样机开发\文档资料\医疗检测仪资料\医疗检测仪资料\m系列串口屏开发包v3.2\m系列串口屏开发包v3.2\2. 技术资料\2.【modbus通讯】串口屏_modbus资料\1.modbus教程1_入门教程\modbus教程_入门教程\modbus教程_入门教程\Images\滑块进度条.png" width="293" height="19" crop="0" effect_left="0" effect_top="0" effect_width="293" effect_height="19" size="11134" />
+        <image id="13" url="" width="48" height="48" crop="0" effect_left="0" effect_top="0" effect_width="48" effect_height="48" size="4608" />
+    </images>
+    <waves />
+</Resource>

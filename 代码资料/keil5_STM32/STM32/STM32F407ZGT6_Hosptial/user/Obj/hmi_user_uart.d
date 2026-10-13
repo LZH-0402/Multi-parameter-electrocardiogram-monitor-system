@@ -1,0 +1,20 @@
+.\obj\hmi_user_uart.o: ..\src\hmi_user_uart.c
+.\obj\hmi_user_uart.o: ..\inc\hmi_user_uart.h
+.\obj\hmi_user_uart.o: ..\inc\stm32f4xx_it.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\CMSIS\Device\STM32F4xx\Include\stm32f4xx.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\CMSIS\Core\CM4\core_cm4.h
+.\obj\hmi_user_uart.o: F:\Program Files\Keil_v514\ARM\ARMCC\Bin\..\include\stdint.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\CMSIS\Core\CM4\core_cmInstr.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\CMSIS\Core\CM4\core_cmFunc.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\CMSIS\Core\CM4\core_cm4_simd.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\CMSIS\Device\STM32F4xx\Include\system_stm32f4xx.h
+.\obj\hmi_user_uart.o: ..\inc\stm32f4xx_conf.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_gpio.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\CMSIS\Device\STM32F4xx\Include\stm32f4xx.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_rcc.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_usart.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_flash.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_exti.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_syscfg.h
+.\obj\hmi_user_uart.o: ..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc\misc.h
+.\obj\hmi_user_uart.o: ..\inc\platform_config.h

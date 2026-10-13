@@ -1,0 +1,4016 @@
+{
+  "design": "N050 capacitive 800x480 BP / SPO2_Hospital palette",
+  "generated_at": "2026-09-21",
+  "hardware_model_verified": false,
+  "colors": {
+    "background": "#0F1B2D",
+    "header": "#16263A",
+    "surface": "#18293D",
+    "inset": "#111F31",
+    "data": "#132D40",
+    "pulse": "#193333",
+    "border": "#30465E",
+    "text": "#F4F7FB",
+    "muted": "#ADBDCE",
+    "cyan": "#42CDE0",
+    "green": "#68D99F",
+    "amber": "#F2CB67",
+    "red": "#FF7C82",
+    "button": "#22364D",
+    "pressed": "#304D63",
+    "button_border": "#607B95"
+  },
+  "pages": [
+    {
+      "id": 0,
+      "key": "boot",
+      "title": "无创血压",
+      "fields": [
+        {
+          "id": 100,
+          "name": "CLOCK",
+          "x": 548,
+          "y": 17,
+          "w": 228,
+          "h": 28,
+          "sample": "2026-09-21 09:41",
+          "default": "时间未校准",
+          "size": 20,
+          "color": "muted",
+          "bg": "header",
+          "align": "right",
+          "number": false
+        },
+        {
+          "id": 101,
+          "name": "CONTEXT",
+          "x": 24,
+          "y": 65,
+          "w": 752,
+          "h": 27,
+          "sample": "会话 001 · 未关联患者",
+          "default": "未关联患者",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 102,
+          "name": "FOOTER",
+          "x": 24,
+          "y": 436,
+          "w": 584,
+          "h": 30,
+          "sample": "尚未允许测量",
+          "default": "等待设备状态",
+          "size": 20,
+          "color": "amber",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 110,
+          "name": "BOOT_STATUS",
+          "x": 48,
+          "y": 169,
+          "w": 690,
+          "h": 48,
+          "sample": "正在初始化",
+          "default": "正在初始化",
+          "size": 32,
+          "color": "text",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 111,
+          "name": "BOOT_DETAIL",
+          "x": 48,
+          "y": 237,
+          "w": 690,
+          "h": 34,
+          "sample": "正在检查设备连接",
+          "default": "正在检查设备连接",
+          "size": 24,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 112,
+          "name": "VERSION",
+          "x": 48,
+          "y": 306,
+          "w": 690,
+          "h": 30,
+          "sample": "屏幕版本：--",
+          "default": "屏幕版本：--",
+          "size": 20,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        }
+      ],
+      "buttons": [],
+      "selected": null,
+      "note": "上电初始页；不放“跳过”按钮。不使用延时自动进入可测量状态。主控完成连接检查后进入 P01，异常进入 P04。",
+      "background": "assets/backgrounds/p00_boot.png"
+    },
+    {
+      "id": 1,
+      "key": "idle",
+      "title": "无创血压",
+      "fields": [
+        {
+          "id": 100,
+          "name": "CLOCK",
+          "x": 548,
+          "y": 17,
+          "w": 228,
+          "h": 28,
+          "sample": "2026-09-21 09:41",
+          "default": "时间未校准",
+          "size": 20,
+          "color": "muted",
+          "bg": "header",
+          "align": "right",
+          "number": false
+        },
+        {
+          "id": 101,
+          "name": "CONTEXT",
+          "x": 24,
+          "y": 65,
+          "w": 752,
+          "h": 27,
+          "sample": "会话 001 · 未关联患者",
+          "default": "未关联患者",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 102,
+          "name": "FOOTER",
+          "x": 24,
+          "y": 436,
+          "w": 584,
+          "h": 30,
+          "sample": "可开始 · 请核对测量对象",
+          "default": "等待设备状态",
+          "size": 20,
+          "color": "green",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 110,
+          "name": "LAST_RESULT",
+          "x": 40,
+          "y": 170,
+          "w": 388,
+          "h": 80,
+          "sample": "-- / --",
+          "default": "-- / --",
+          "size": 58,
+          "color": "muted",
+          "bg": "data",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 111,
+          "name": "LAST_INFO",
+          "x": 40,
+          "y": 269,
+          "w": 388,
+          "h": 34,
+          "sample": "尚无测量结果",
+          "default": "尚无测量结果",
+          "size": 24,
+          "color": "text",
+          "bg": "data",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 103,
+          "name": "TIP_TITLE",
+          "x": 40,
+          "y": 342,
+          "w": 714,
+          "h": 28,
+          "sample": "准备测量",
+          "default": "等待设备状态",
+          "size": 22,
+          "color": "cyan",
+          "bg": "inset",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 104,
+          "name": "TIP_DETAIL",
+          "x": 40,
+          "y": 372,
+          "w": 714,
+          "h": 26,
+          "sample": "请按设备说明佩戴袖带，测量时保持静止",
+          "default": "",
+          "size": 20,
+          "color": "text",
+          "bg": "inset",
+          "align": "left",
+          "number": false
+        }
+      ],
+      "buttons": [
+        {
+          "id": 10,
+          "key": "start",
+          "label": "开始测量",
+          "x": 492,
+          "y": 112,
+          "w": 280,
+          "h": 112,
+          "kind": "primary",
+          "enabled": true
+        },
+        {
+          "id": 11,
+          "key": "history",
+          "label": "历史",
+          "x": 492,
+          "y": 248,
+          "w": 132,
+          "h": 72,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 12,
+          "key": "settings",
+          "label": "设置",
+          "x": 640,
+          "y": 248,
+          "w": 132,
+          "h": 72,
+          "kind": "secondary",
+          "enabled": true
+        }
+      ],
+      "selected": null,
+      "note": "初始开始按钮禁用，主控明确 start_allowed 后才启用。同一会话存在上次结果时可更新 LAST_RESULT 和 LAST_INFO，必须同时带历史时间说明。",
+      "background": "assets/backgrounds/p01_idle.png"
+    },
+    {
+      "id": 2,
+      "key": "measuring",
+      "title": "无创血压",
+      "fields": [
+        {
+          "id": 100,
+          "name": "CLOCK",
+          "x": 548,
+          "y": 17,
+          "w": 228,
+          "h": 28,
+          "sample": "2026-09-21 09:41",
+          "default": "时间未校准",
+          "size": 20,
+          "color": "muted",
+          "bg": "header",
+          "align": "right",
+          "number": false
+        },
+        {
+          "id": 101,
+          "name": "CONTEXT",
+          "x": 24,
+          "y": 65,
+          "w": 752,
+          "h": 27,
+          "sample": "会话 001 · 未关联患者",
+          "default": "未关联患者",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 102,
+          "name": "FOOTER",
+          "x": 24,
+          "y": 436,
+          "w": 584,
+          "h": 30,
+          "sample": "正在接收压力数据",
+          "default": "等待设备状态",
+          "size": 20,
+          "color": "cyan",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 110,
+          "name": "MEASURE_STATUS",
+          "x": 40,
+          "y": 108,
+          "w": 388,
+          "h": 36,
+          "sample": "测量中",
+          "default": "启动中",
+          "size": 24,
+          "color": "cyan",
+          "bg": "data",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 111,
+          "name": "PRESSURE",
+          "x": 40,
+          "y": 148,
+          "w": 250,
+          "h": 100,
+          "sample": "156",
+          "default": "--",
+          "size": 88,
+          "color": "cyan",
+          "bg": "data",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 112,
+          "name": "ELAPSED",
+          "x": 239,
+          "y": 273,
+          "w": 189,
+          "h": 32,
+          "sample": "已用时 00:28",
+          "default": "已用时 --:--",
+          "size": 22,
+          "color": "muted",
+          "bg": "data",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 103,
+          "name": "TIP_TITLE",
+          "x": 40,
+          "y": 342,
+          "w": 714,
+          "h": 28,
+          "sample": "测量进行中",
+          "default": "等待设备状态",
+          "size": 22,
+          "color": "cyan",
+          "bg": "inset",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 104,
+          "name": "TIP_DETAIL",
+          "x": 40,
+          "y": 372,
+          "w": 714,
+          "h": 26,
+          "sample": "请保持静止，测量时避免说话",
+          "default": "",
+          "size": 20,
+          "color": "text",
+          "bg": "inset",
+          "align": "left",
+          "number": false
+        }
+      ],
+      "buttons": [
+        {
+          "id": 10,
+          "key": "stop",
+          "label": "停止测量",
+          "x": 492,
+          "y": 112,
+          "w": 280,
+          "h": 112,
+          "kind": "stop",
+          "enabled": true
+        }
+      ],
+      "selected": null,
+      "note": "P02 包含启动中、测量中、压力断流三种文案。启动时压力为 --；没有有效压力时清空显示，不能保留过时数字。",
+      "background": "assets/backgrounds/p02_measuring.png"
+    },
+    {
+      "id": 3,
+      "key": "result",
+      "title": "无创血压",
+      "fields": [
+        {
+          "id": 100,
+          "name": "CLOCK",
+          "x": 548,
+          "y": 17,
+          "w": 228,
+          "h": 28,
+          "sample": "2026-09-21 09:41",
+          "default": "时间未校准",
+          "size": 20,
+          "color": "muted",
+          "bg": "header",
+          "align": "right",
+          "number": false
+        },
+        {
+          "id": 101,
+          "name": "CONTEXT",
+          "x": 24,
+          "y": 65,
+          "w": 752,
+          "h": 27,
+          "sample": "会话 001 · 未关联患者",
+          "default": "未关联患者",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 102,
+          "name": "FOOTER",
+          "x": 24,
+          "y": 436,
+          "w": 584,
+          "h": 30,
+          "sample": "结果来自本次测量",
+          "default": "等待设备状态",
+          "size": 20,
+          "color": "green",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 110,
+          "name": "SYS",
+          "x": 40,
+          "y": 145,
+          "w": 176,
+          "h": 80,
+          "sample": "120",
+          "default": "--",
+          "size": 76,
+          "color": "cyan",
+          "bg": "data",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 111,
+          "name": "DIA",
+          "x": 248,
+          "y": 145,
+          "w": 180,
+          "h": 80,
+          "sample": "80",
+          "default": "--",
+          "size": 76,
+          "color": "cyan",
+          "bg": "data",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 112,
+          "name": "PR",
+          "x": 174,
+          "y": 258,
+          "w": 112,
+          "h": 58,
+          "sample": "72",
+          "default": "--",
+          "size": 52,
+          "color": "green",
+          "bg": "pulse",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 103,
+          "name": "TIP_TITLE",
+          "x": 40,
+          "y": 342,
+          "w": 714,
+          "h": 28,
+          "sample": "测量完成",
+          "default": "等待设备状态",
+          "size": 22,
+          "color": "green",
+          "bg": "pulse",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 104,
+          "name": "TIP_DETAIL",
+          "x": 40,
+          "y": 372,
+          "w": 714,
+          "h": 26,
+          "sample": "测量时间 09:41 · 本次会话第 5 次测量",
+          "default": "",
+          "size": 20,
+          "color": "text",
+          "bg": "pulse",
+          "align": "left",
+          "number": false
+        }
+      ],
+      "buttons": [
+        {
+          "id": 10,
+          "key": "remeasure",
+          "label": "再次测量",
+          "x": 492,
+          "y": 112,
+          "w": 280,
+          "h": 112,
+          "kind": "primary",
+          "enabled": true
+        },
+        {
+          "id": 11,
+          "key": "history",
+          "label": "历史",
+          "x": 492,
+          "y": 248,
+          "w": 132,
+          "h": 72,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 12,
+          "key": "new_patient",
+          "label": "换患者",
+          "x": 640,
+          "y": 248,
+          "w": 132,
+          "h": 72,
+          "kind": "secondary",
+          "enabled": true
+        }
+      ],
+      "selected": null,
+      "note": "SYS/DIA/PR、会话、时间、有效标识一起更新后才显示“测量完成”。绿色表示流程完成，不代表血压正常。字体若不支持目标尺寸，用本机可用的 64 px / 32 px 字库完成首轮联调。",
+      "background": "assets/backgrounds/p03_result.png"
+    },
+    {
+      "id": 4,
+      "key": "notice",
+      "title": "无创血压",
+      "fields": [
+        {
+          "id": 100,
+          "name": "CLOCK",
+          "x": 548,
+          "y": 17,
+          "w": 228,
+          "h": 28,
+          "sample": "2026-09-21 09:41",
+          "default": "时间未校准",
+          "size": 20,
+          "color": "muted",
+          "bg": "header",
+          "align": "right",
+          "number": false
+        },
+        {
+          "id": 101,
+          "name": "CONTEXT",
+          "x": 24,
+          "y": 65,
+          "w": 752,
+          "h": 27,
+          "sample": "会话 001 · 未关联患者",
+          "default": "未关联患者",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 102,
+          "name": "FOOTER",
+          "x": 24,
+          "y": 436,
+          "w": 584,
+          "h": 30,
+          "sample": "设备允许重试 · 请先检查",
+          "default": "等待设备状态",
+          "size": 20,
+          "color": "amber",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 110,
+          "name": "ERROR_CODE",
+          "x": 40,
+          "y": 109,
+          "w": 388,
+          "h": 32,
+          "sample": "E01",
+          "default": "--",
+          "size": 22,
+          "color": "amber",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 111,
+          "name": "ERROR_TITLE",
+          "x": 40,
+          "y": 158,
+          "w": 388,
+          "h": 48,
+          "sample": "压力未建立",
+          "default": "等待状态确认",
+          "size": 32,
+          "color": "text",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 112,
+          "name": "ERROR_LINE1",
+          "x": 40,
+          "y": 216,
+          "w": 388,
+          "h": 34,
+          "sample": "请检查袖带佩戴",
+          "default": "",
+          "size": 24,
+          "color": "text",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 113,
+          "name": "ERROR_LINE2",
+          "x": 40,
+          "y": 251,
+          "w": 388,
+          "h": 32,
+          "sample": "和气管连接",
+          "default": "",
+          "size": 24,
+          "color": "text",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 114,
+          "name": "RESULT_VALIDITY",
+          "x": 40,
+          "y": 289,
+          "w": 388,
+          "h": 27,
+          "sample": "本次未获得有效结果",
+          "default": "本次未获得有效结果",
+          "size": 20,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 103,
+          "name": "TIP_TITLE",
+          "x": 40,
+          "y": 342,
+          "w": 714,
+          "h": 28,
+          "sample": "检查完成后再重试",
+          "default": "等待设备状态",
+          "size": 22,
+          "color": "amber",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 104,
+          "name": "TIP_DETAIL",
+          "x": 40,
+          "y": 372,
+          "w": 714,
+          "h": 26,
+          "sample": "若问题持续，请联系维护人员",
+          "default": "",
+          "size": 20,
+          "color": "text",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        }
+      ],
+      "buttons": [
+        {
+          "id": 10,
+          "key": "retry",
+          "label": "重新测量",
+          "x": 492,
+          "y": 112,
+          "w": 280,
+          "h": 112,
+          "kind": "primary",
+          "enabled": true
+        },
+        {
+          "id": 11,
+          "key": "back_wide",
+          "label": "返回",
+          "x": 492,
+          "y": 248,
+          "w": 280,
+          "h": 72,
+          "kind": "secondary",
+          "enabled": true
+        }
+      ],
+      "selected": null,
+      "note": "该图是允许重试的 E01 示例。通信故障或停止状态不明时，ID10 更换为 stop 图片并解释为 STOP，ID11 隐藏且禁用；见锁定变体。错误信息由主控填入，不把 E01 烘焙到背景。",
+      "background": "assets/backgrounds/p04_notice.png"
+    },
+    {
+      "id": 5,
+      "key": "history",
+      "title": "测量历史",
+      "fields": [
+        {
+          "id": 100,
+          "name": "CLOCK",
+          "x": 548,
+          "y": 17,
+          "w": 228,
+          "h": 28,
+          "sample": "2026-09-21 09:41",
+          "default": "时间未校准",
+          "size": 20,
+          "color": "muted",
+          "bg": "header",
+          "align": "right",
+          "number": false
+        },
+        {
+          "id": 101,
+          "name": "CONTEXT",
+          "x": 24,
+          "y": 65,
+          "w": 752,
+          "h": 27,
+          "sample": "会话 001 · 未关联患者",
+          "default": "未关联患者",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 102,
+          "name": "FOOTER",
+          "x": 24,
+          "y": 436,
+          "w": 584,
+          "h": 30,
+          "sample": "单位：SYS / DIA 为 mmHg；PR 为次/分",
+          "default": "等待设备状态",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 110,
+          "name": "ROW1_NO",
+          "x": 40,
+          "y": 145,
+          "w": 52,
+          "h": 32,
+          "sample": "05",
+          "default": "",
+          "size": 22,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 111,
+          "name": "ROW1_TIME",
+          "x": 104,
+          "y": 145,
+          "w": 132,
+          "h": 32,
+          "sample": "09:41",
+          "default": "",
+          "size": 22,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 112,
+          "name": "ROW1_SYS",
+          "x": 252,
+          "y": 145,
+          "w": 96,
+          "h": 32,
+          "sample": "120",
+          "default": "",
+          "size": 22,
+          "color": "cyan",
+          "bg": "surface",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 113,
+          "name": "ROW1_DIA",
+          "x": 362,
+          "y": 145,
+          "w": 88,
+          "h": 32,
+          "sample": "80",
+          "default": "",
+          "size": 22,
+          "color": "cyan",
+          "bg": "surface",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 114,
+          "name": "ROW1_PR",
+          "x": 468,
+          "y": 145,
+          "w": 96,
+          "h": 32,
+          "sample": "72",
+          "default": "",
+          "size": 22,
+          "color": "green",
+          "bg": "surface",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 115,
+          "name": "ROW1_STATE",
+          "x": 588,
+          "y": 145,
+          "w": 172,
+          "h": 32,
+          "sample": "有效",
+          "default": "",
+          "size": 22,
+          "color": "text",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 116,
+          "name": "ROW2_NO",
+          "x": 40,
+          "y": 186,
+          "w": 52,
+          "h": 32,
+          "sample": "04",
+          "default": "",
+          "size": 22,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 117,
+          "name": "ROW2_TIME",
+          "x": 104,
+          "y": 186,
+          "w": 132,
+          "h": 32,
+          "sample": "09:37",
+          "default": "",
+          "size": 22,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 118,
+          "name": "ROW2_SYS",
+          "x": 252,
+          "y": 186,
+          "w": 96,
+          "h": 32,
+          "sample": "--",
+          "default": "",
+          "size": 22,
+          "color": "cyan",
+          "bg": "surface",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 119,
+          "name": "ROW2_DIA",
+          "x": 362,
+          "y": 186,
+          "w": 88,
+          "h": 32,
+          "sample": "--",
+          "default": "",
+          "size": 22,
+          "color": "cyan",
+          "bg": "surface",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 120,
+          "name": "ROW2_PR",
+          "x": 468,
+          "y": 186,
+          "w": 96,
+          "h": 32,
+          "sample": "--",
+          "default": "",
+          "size": 22,
+          "color": "green",
+          "bg": "surface",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 121,
+          "name": "ROW2_STATE",
+          "x": 588,
+          "y": 186,
+          "w": 172,
+          "h": 32,
+          "sample": "已取消",
+          "default": "",
+          "size": 22,
+          "color": "text",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 122,
+          "name": "ROW3_NO",
+          "x": 40,
+          "y": 227,
+          "w": 52,
+          "h": 32,
+          "sample": "03",
+          "default": "",
+          "size": 22,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 123,
+          "name": "ROW3_TIME",
+          "x": 104,
+          "y": 227,
+          "w": 132,
+          "h": 32,
+          "sample": "09:33",
+          "default": "",
+          "size": 22,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 124,
+          "name": "ROW3_SYS",
+          "x": 252,
+          "y": 227,
+          "w": 96,
+          "h": 32,
+          "sample": "--",
+          "default": "",
+          "size": 22,
+          "color": "cyan",
+          "bg": "surface",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 125,
+          "name": "ROW3_DIA",
+          "x": 362,
+          "y": 227,
+          "w": 88,
+          "h": 32,
+          "sample": "--",
+          "default": "",
+          "size": 22,
+          "color": "cyan",
+          "bg": "surface",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 126,
+          "name": "ROW3_PR",
+          "x": 468,
+          "y": 227,
+          "w": 96,
+          "h": 32,
+          "sample": "--",
+          "default": "",
+          "size": 22,
+          "color": "green",
+          "bg": "surface",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 127,
+          "name": "ROW3_STATE",
+          "x": 588,
+          "y": 227,
+          "w": 172,
+          "h": 32,
+          "sample": "E01",
+          "default": "",
+          "size": 22,
+          "color": "text",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 128,
+          "name": "ROW4_NO",
+          "x": 40,
+          "y": 268,
+          "w": 52,
+          "h": 32,
+          "sample": "02",
+          "default": "",
+          "size": 22,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 129,
+          "name": "ROW4_TIME",
+          "x": 104,
+          "y": 268,
+          "w": 132,
+          "h": 32,
+          "sample": "09:28",
+          "default": "",
+          "size": 22,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 130,
+          "name": "ROW4_SYS",
+          "x": 252,
+          "y": 268,
+          "w": 96,
+          "h": 32,
+          "sample": "122",
+          "default": "",
+          "size": 22,
+          "color": "cyan",
+          "bg": "surface",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 131,
+          "name": "ROW4_DIA",
+          "x": 362,
+          "y": 268,
+          "w": 88,
+          "h": 32,
+          "sample": "82",
+          "default": "",
+          "size": 22,
+          "color": "cyan",
+          "bg": "surface",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 132,
+          "name": "ROW4_PR",
+          "x": 468,
+          "y": 268,
+          "w": 96,
+          "h": 32,
+          "sample": "75",
+          "default": "",
+          "size": 22,
+          "color": "green",
+          "bg": "surface",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 133,
+          "name": "ROW4_STATE",
+          "x": 588,
+          "y": 268,
+          "w": 172,
+          "h": 32,
+          "sample": "有效",
+          "default": "",
+          "size": 22,
+          "color": "text",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 140,
+          "name": "PAGE_INDEX",
+          "x": 384,
+          "y": 346,
+          "w": 200,
+          "h": 30,
+          "sample": "第 1 / 2 页",
+          "default": "暂无记录",
+          "size": 22,
+          "color": "muted",
+          "bg": "background",
+          "align": "center",
+          "number": false
+        },
+        {
+          "id": 141,
+          "name": "CACHE_NOTE",
+          "x": 24,
+          "y": 399,
+          "w": 752,
+          "h": 24,
+          "sample": "本次会话记录 · 断电不保留",
+          "default": "本次会话记录 · 断电不保留",
+          "size": 18,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        }
+      ],
+      "buttons": [
+        {
+          "id": 10,
+          "key": "previous",
+          "label": "上一页",
+          "x": 24,
+          "y": 330,
+          "w": 160,
+          "h": 64,
+          "kind": "secondary",
+          "enabled": false
+        },
+        {
+          "id": 11,
+          "key": "next",
+          "label": "下一页",
+          "x": 200,
+          "y": 330,
+          "w": 160,
+          "h": 64,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 12,
+          "key": "back_160",
+          "label": "返回",
+          "x": 612,
+          "y": 330,
+          "w": 160,
+          "h": 64,
+          "kind": "secondary",
+          "enabled": true
+        }
+      ],
+      "selected": null,
+      "note": "示例包含有效结果、取消和错误事件。只展示当前会话，最多缓存 100 条事件、每页 4 条。缓存由主控实现，屏幕本身不会因为有历史页就自动保存记录。",
+      "background": "assets/backgrounds/p05_history.png"
+    },
+    {
+      "id": 6,
+      "key": "settings",
+      "title": "设备设置",
+      "fields": [
+        {
+          "id": 100,
+          "name": "CLOCK",
+          "x": 548,
+          "y": 17,
+          "w": 228,
+          "h": 28,
+          "sample": "2026-09-21 09:41",
+          "default": "时间未校准",
+          "size": 20,
+          "color": "muted",
+          "bg": "header",
+          "align": "right",
+          "number": false
+        },
+        {
+          "id": 101,
+          "name": "CONTEXT",
+          "x": 24,
+          "y": 65,
+          "w": 752,
+          "h": 27,
+          "sample": "会话 001 · 未关联患者",
+          "default": "未关联患者",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 102,
+          "name": "FOOTER",
+          "x": 24,
+          "y": 436,
+          "w": 584,
+          "h": 30,
+          "sample": "设置仅在空闲时可用",
+          "default": "等待设备状态",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 110,
+          "name": "BRIGHTNESS",
+          "x": 324,
+          "y": 118,
+          "w": 140,
+          "h": 44,
+          "sample": "70%",
+          "default": "--",
+          "size": 32,
+          "color": "cyan",
+          "bg": "surface",
+          "align": "center",
+          "number": true
+        },
+        {
+          "id": 111,
+          "name": "DEVICE_TIME",
+          "x": 40,
+          "y": 254,
+          "w": 430,
+          "h": 32,
+          "sample": "2026-09-21 09:41",
+          "default": "时间未校准",
+          "size": 22,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        }
+      ],
+      "buttons": [
+        {
+          "id": 10,
+          "key": "brightness_minus",
+          "label": "降低",
+          "x": 492,
+          "y": 110,
+          "w": 124,
+          "h": 64,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 11,
+          "key": "brightness_plus",
+          "label": "提高",
+          "x": 648,
+          "y": 110,
+          "w": 124,
+          "h": 64,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 12,
+          "key": "set_time",
+          "label": "时间设置",
+          "x": 492,
+          "y": 220,
+          "w": 280,
+          "h": 64,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 13,
+          "key": "maintenance",
+          "label": "维护",
+          "x": 24,
+          "y": 336,
+          "w": 200,
+          "h": 64,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 14,
+          "key": "back_200",
+          "label": "返回",
+          "x": 572,
+          "y": 336,
+          "w": 200,
+          "h": 64,
+          "kind": "secondary",
+          "enabled": true
+        }
+      ],
+      "selected": null,
+      "note": "本包包含亮度调整和时间编辑的外观与控件表；实际亮度/RTC 指令须按实物型号验证。亮度按成功读回的值显示，时间未经校准仍写“时间未校准”。",
+      "background": "assets/backgrounds/p06_settings.png"
+    },
+    {
+      "id": 7,
+      "key": "maintenance",
+      "title": "维护信息",
+      "fields": [
+        {
+          "id": 100,
+          "name": "CLOCK",
+          "x": 548,
+          "y": 17,
+          "w": 228,
+          "h": 28,
+          "sample": "2026-09-21 09:41",
+          "default": "时间未校准",
+          "size": 20,
+          "color": "muted",
+          "bg": "header",
+          "align": "right",
+          "number": false
+        },
+        {
+          "id": 101,
+          "name": "CONTEXT",
+          "x": 24,
+          "y": 65,
+          "w": 752,
+          "h": 27,
+          "sample": "会话 001 · 未关联患者",
+          "default": "未关联患者",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 102,
+          "name": "FOOTER",
+          "x": 24,
+          "y": 436,
+          "w": 584,
+          "h": 30,
+          "sample": "需要授权才能查看维护信息",
+          "default": "等待设备状态",
+          "size": 20,
+          "color": "amber",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 110,
+          "name": "ACCESS_STATUS",
+          "x": 40,
+          "y": 153,
+          "w": 712,
+          "h": 46,
+          "sample": "权限未授予",
+          "default": "权限未授予",
+          "size": 32,
+          "color": "text",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 111,
+          "name": "MAINT_LINE1",
+          "x": 40,
+          "y": 213,
+          "w": 712,
+          "h": 34,
+          "sample": "请由授权维护端启用访问权限",
+          "default": "请由授权维护端启用访问权限",
+          "size": 24,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 112,
+          "name": "MAINT_LINE2",
+          "x": 40,
+          "y": 261,
+          "w": 712,
+          "h": 34,
+          "sample": "当前仅显示访问说明",
+          "default": "当前仅显示访问说明",
+          "size": 22,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        }
+      ],
+      "buttons": [
+        {
+          "id": 10,
+          "key": "back_280",
+          "label": "返回",
+          "x": 492,
+          "y": 336,
+          "w": 280,
+          "h": 64,
+          "kind": "secondary",
+          "enabled": true
+        }
+      ],
+      "selected": null,
+      "note": "本包只提供维护入口和只读信息版式，不虚构默认密码。真正权限在主控校验；不要用长按标题、隐藏按钮或固定密码代替权限。授权后的版本/通信信息见同页变体。",
+      "background": "assets/backgrounds/p07_maintenance.png"
+    },
+    {
+      "id": 8,
+      "key": "stopping",
+      "title": "无创血压",
+      "fields": [
+        {
+          "id": 100,
+          "name": "CLOCK",
+          "x": 548,
+          "y": 17,
+          "w": 228,
+          "h": 28,
+          "sample": "2026-09-21 09:41",
+          "default": "时间未校准",
+          "size": 20,
+          "color": "muted",
+          "bg": "header",
+          "align": "right",
+          "number": false
+        },
+        {
+          "id": 101,
+          "name": "CONTEXT",
+          "x": 24,
+          "y": 65,
+          "w": 752,
+          "h": 27,
+          "sample": "会话 001 · 未关联患者",
+          "default": "未关联患者",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 102,
+          "name": "FOOTER",
+          "x": 24,
+          "y": 436,
+          "w": 584,
+          "h": 30,
+          "sample": "结果已取消 · 等待状态确认",
+          "default": "等待设备状态",
+          "size": 20,
+          "color": "amber",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 110,
+          "name": "STOP_STATUS",
+          "x": 40,
+          "y": 113,
+          "w": 388,
+          "h": 44,
+          "sample": "正在停止",
+          "default": "正在停止",
+          "size": 32,
+          "color": "amber",
+          "bg": "data",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 111,
+          "name": "PRESSURE",
+          "x": 40,
+          "y": 163,
+          "w": 250,
+          "h": 88,
+          "sample": "--",
+          "default": "--",
+          "size": 76,
+          "color": "cyan",
+          "bg": "data",
+          "align": "left",
+          "number": true
+        },
+        {
+          "id": 112,
+          "name": "STOP_DETAIL",
+          "x": 40,
+          "y": 267,
+          "w": 388,
+          "h": 34,
+          "sample": "正在确认停止状态",
+          "default": "正在确认停止状态",
+          "size": 24,
+          "color": "muted",
+          "bg": "data",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 103,
+          "name": "TIP_TITLE",
+          "x": 40,
+          "y": 342,
+          "w": 714,
+          "h": 28,
+          "sample": "正在结束本次测量",
+          "default": "等待设备状态",
+          "size": 22,
+          "color": "amber",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 104,
+          "name": "TIP_DETAIL",
+          "x": 40,
+          "y": 372,
+          "w": 714,
+          "h": 26,
+          "sample": "停止状态未确认前，请勿开始下一次测量",
+          "default": "",
+          "size": 20,
+          "color": "text",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        }
+      ],
+      "buttons": [
+        {
+          "id": 10,
+          "key": "stop",
+          "label": "停止测量",
+          "x": 492,
+          "y": 112,
+          "w": 280,
+          "h": 112,
+          "kind": "stop",
+          "enabled": true
+        }
+      ],
+      "selected": null,
+      "note": "主控确认取消且允许重新测量后回 P01；无法确认时进入 P04 锁定变体。停止 ACK 不等于已泄压。此页仍能发送停止请求。",
+      "background": "assets/backgrounds/p08_stopping.png"
+    },
+    {
+      "id": 9,
+      "key": "confirm",
+      "title": "切换测量会话",
+      "fields": [
+        {
+          "id": 100,
+          "name": "CLOCK",
+          "x": 548,
+          "y": 17,
+          "w": 228,
+          "h": 28,
+          "sample": "2026-09-21 09:41",
+          "default": "时间未校准",
+          "size": 20,
+          "color": "muted",
+          "bg": "header",
+          "align": "right",
+          "number": false
+        },
+        {
+          "id": 101,
+          "name": "CONTEXT",
+          "x": 24,
+          "y": 65,
+          "w": 752,
+          "h": 27,
+          "sample": "会话 001 · 未关联患者",
+          "default": "未关联患者",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 102,
+          "name": "FOOTER",
+          "x": 24,
+          "y": 436,
+          "w": 584,
+          "h": 30,
+          "sample": "不会立即删除旧会话缓存",
+          "default": "等待设备状态",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 110,
+          "name": "CURRENT_SESSION",
+          "x": 40,
+          "y": 268,
+          "w": 712,
+          "h": 30,
+          "sample": "当前：会话 001 · 未关联患者",
+          "default": "当前会话：待主控提供",
+          "size": 22,
+          "color": "muted",
+          "bg": "surface",
+          "align": "left",
+          "number": false
+        }
+      ],
+      "buttons": [
+        {
+          "id": 10,
+          "key": "cancel_280",
+          "label": "取消",
+          "x": 24,
+          "y": 336,
+          "w": 280,
+          "h": 64,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 11,
+          "key": "confirm_session",
+          "label": "确认换患者",
+          "x": 492,
+          "y": 336,
+          "w": 280,
+          "h": 64,
+          "kind": "primary",
+          "enabled": true
+        }
+      ],
+      "selected": null,
+      "note": "采用完整页面实现确认框，不依赖子画面弹窗或透明层。未接入患者系统时“换患者”表示新建测量会话，不代表完成真实患者身份绑定。",
+      "background": "assets/backgrounds/p09_confirm.png"
+    },
+    {
+      "id": 10,
+      "key": "time",
+      "title": "时间设置",
+      "fields": [
+        {
+          "id": 100,
+          "name": "CLOCK",
+          "x": 548,
+          "y": 17,
+          "w": 228,
+          "h": 28,
+          "sample": "2026-09-21 09:41",
+          "default": "时间未校准",
+          "size": 20,
+          "color": "muted",
+          "bg": "header",
+          "align": "right",
+          "number": false
+        },
+        {
+          "id": 101,
+          "name": "CONTEXT",
+          "x": 24,
+          "y": 65,
+          "w": 752,
+          "h": 27,
+          "sample": "会话 001 · 未关联患者",
+          "default": "未关联患者",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 102,
+          "name": "FOOTER",
+          "x": 24,
+          "y": 436,
+          "w": 584,
+          "h": 30,
+          "sample": "编辑中的时间尚未保存",
+          "default": "等待设备状态",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 110,
+          "name": "YEAR",
+          "x": 44,
+          "y": 169,
+          "w": 112,
+          "h": 40,
+          "sample": "2026",
+          "default": "--",
+          "size": 32,
+          "color": "text",
+          "bg": "button",
+          "align": "center",
+          "number": true
+        },
+        {
+          "id": 111,
+          "name": "MONTH",
+          "x": 188,
+          "y": 169,
+          "w": 112,
+          "h": 40,
+          "sample": "09",
+          "default": "--",
+          "size": 32,
+          "color": "text",
+          "bg": "button",
+          "align": "center",
+          "number": true
+        },
+        {
+          "id": 112,
+          "name": "DAY",
+          "x": 332,
+          "y": 169,
+          "w": 112,
+          "h": 40,
+          "sample": "21",
+          "default": "--",
+          "size": 32,
+          "color": "text",
+          "bg": "button",
+          "align": "center",
+          "number": true
+        },
+        {
+          "id": 113,
+          "name": "HOUR",
+          "x": 500,
+          "y": 169,
+          "w": 112,
+          "h": 40,
+          "sample": "09",
+          "default": "--",
+          "size": 32,
+          "color": "text",
+          "bg": "button",
+          "align": "center",
+          "number": true
+        },
+        {
+          "id": 114,
+          "name": "MINUTE",
+          "x": 644,
+          "y": 169,
+          "w": 112,
+          "h": 40,
+          "sample": "41",
+          "default": "--",
+          "size": 32,
+          "color": "text",
+          "bg": "button",
+          "align": "center",
+          "number": true
+        },
+        {
+          "id": 120,
+          "name": "EDIT_FIELD",
+          "x": 24,
+          "y": 353,
+          "w": 752,
+          "h": 30,
+          "sample": "正在编辑：年",
+          "default": "正在编辑：年",
+          "size": 22,
+          "color": "cyan",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        },
+        {
+          "id": 121,
+          "name": "EDIT_HELP",
+          "x": 24,
+          "y": 389,
+          "w": 752,
+          "h": 26,
+          "sample": "先选择字段，再按 ＋ / －；保存后才更新设备时间",
+          "default": "选择字段，再调整数值",
+          "size": 20,
+          "color": "muted",
+          "bg": "background",
+          "align": "left",
+          "number": false
+        }
+      ],
+      "buttons": [
+        {
+          "id": 10,
+          "key": "time_field",
+          "label": "",
+          "x": 40,
+          "y": 151,
+          "w": 120,
+          "h": 72,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 11,
+          "key": "time_field",
+          "label": "",
+          "x": 184,
+          "y": 151,
+          "w": 120,
+          "h": 72,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 12,
+          "key": "time_field",
+          "label": "",
+          "x": 328,
+          "y": 151,
+          "w": 120,
+          "h": 72,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 13,
+          "key": "time_field",
+          "label": "",
+          "x": 496,
+          "y": 151,
+          "w": 120,
+          "h": 72,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 14,
+          "key": "time_field",
+          "label": "",
+          "x": 640,
+          "y": 151,
+          "w": 120,
+          "h": 72,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 15,
+          "key": "time_add",
+          "label": "＋",
+          "x": 24,
+          "y": 272,
+          "w": 160,
+          "h": 64,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 16,
+          "key": "time_subtract",
+          "label": "－",
+          "x": 200,
+          "y": 272,
+          "w": 160,
+          "h": 64,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 17,
+          "key": "cancel_small",
+          "label": "取消",
+          "x": 492,
+          "y": 272,
+          "w": 132,
+          "h": 64,
+          "kind": "secondary",
+          "enabled": true
+        },
+        {
+          "id": 18,
+          "key": "save_time",
+          "label": "保存",
+          "x": 640,
+          "y": 272,
+          "w": 132,
+          "h": 64,
+          "kind": "primary",
+          "enabled": true
+        }
+      ],
+      "selected": 10,
+      "note": "5 个选择框实际是按钮＋原生文本叠放，按钮图片无数字。文本用“用户主机输入”，不启用键盘。本机 DN050 配置不支持系统键盘，因此此页采用选择字段和加减按钮。RTC 范围、闰年和整机时间源由主控处理。",
+      "background": "assets/backgrounds/p10_time.png"
+    }
+  ],
+  "variants": {
+    "starting": {
+      "page": "measuring",
+      "values": {
+        "MEASURE_STATUS": "启动中",
+        "PRESSURE": "--",
+        "ELAPSED": "已用时 00:00",
+        "TIP_TITLE": "正在启动测量",
+        "FOOTER": "等待有效压力数据"
+      }
+    },
+    "pressure_stale": {
+      "page": "measuring",
+      "values": {
+        "MEASURE_STATUS": "压力数据中断",
+        "PRESSURE": "--",
+        "TIP_TITLE": "过程数据未更新",
+        "TIP_DETAIL": "请按设备说明处理；仍可点击停止",
+        "FOOTER": "正在确认设备状态"
+      }
+    },
+    "idle_new": {
+      "page": "idle",
+      "values": {
+        "CONTEXT": "会话 002 · 未关联患者",
+        "LAST_RESULT": "-- / --",
+        "LAST_INFO": "尚无测量结果"
+      }
+    },
+    "idle_cancelled": {
+      "page": "idle",
+      "values": {
+        "TIP_TITLE": "本次测量已取消",
+        "TIP_DETAIL": "再次测量前，请核对测量对象",
+        "FOOTER": "可开始 · 无本次测量结果"
+      }
+    },
+    "idle_blocked": {
+      "page": "idle",
+      "values": {
+        "FOOTER": "暂不可测量 · 等待设备就绪",
+        "TIP_TITLE": "正在连接",
+        "TIP_DETAIL": "连接完成后才能开始测量"
+      },
+      "disabled": [
+        10
+      ]
+    },
+    "notice_locked": {
+      "page": "notice",
+      "values": {
+        "ERROR_CODE": "通信故障",
+        "ERROR_TITLE": "停止状态未确认",
+        "ERROR_LINE1": "请按设备说明处理",
+        "ERROR_LINE2": "联系维护人员",
+        "TIP_TITLE": "暂不允许重新测量",
+        "TIP_DETAIL": "请按设备说明处理，必要时联系维护人员",
+        "FOOTER": "状态未确认 · 开始与重试已关闭"
+      },
+      "button_overrides": {
+        "10": "stop"
+      },
+      "hidden": [
+        11
+      ]
+    },
+    "history_first": {
+      "page": "history",
+      "values": {},
+      "disabled": [
+        10
+      ]
+    },
+    "history_second": {
+      "page": "history",
+      "values": {
+        "PAGE_INDEX": "第 2 / 2 页",
+        "ROW1_NO": "01",
+        "ROW1_TIME": "09:24",
+        "ROW1_SYS": "118",
+        "ROW1_DIA": "78",
+        "ROW1_PR": "71",
+        "ROW1_STATE": "有效",
+        "ROW2_NO": "",
+        "ROW2_TIME": "",
+        "ROW2_SYS": "",
+        "ROW2_DIA": "",
+        "ROW2_PR": "",
+        "ROW2_STATE": "",
+        "ROW3_NO": "",
+        "ROW3_TIME": "",
+        "ROW3_SYS": "",
+        "ROW3_DIA": "",
+        "ROW3_PR": "",
+        "ROW3_STATE": "",
+        "ROW4_NO": "",
+        "ROW4_TIME": "",
+        "ROW4_SYS": "",
+        "ROW4_DIA": "",
+        "ROW4_PR": "",
+        "ROW4_STATE": ""
+      },
+      "disabled": [
+        11
+      ],
+      "enabled": [
+        10
+      ]
+    },
+    "history_empty": {
+      "page": "history",
+      "values": {
+        "PAGE_INDEX": "暂无记录",
+        "CONTEXT": "会话 002 · 未关联患者",
+        "ROW1_NO": "",
+        "ROW1_TIME": "",
+        "ROW1_SYS": "",
+        "ROW1_DIA": "",
+        "ROW1_PR": "",
+        "ROW1_STATE": "",
+        "ROW2_NO": "",
+        "ROW2_TIME": "",
+        "ROW2_SYS": "",
+        "ROW2_DIA": "",
+        "ROW2_PR": "",
+        "ROW2_STATE": "",
+        "ROW3_NO": "",
+        "ROW3_TIME": "",
+        "ROW3_SYS": "",
+        "ROW3_DIA": "",
+        "ROW3_PR": "",
+        "ROW3_STATE": "",
+        "ROW4_NO": "",
+        "ROW4_TIME": "",
+        "ROW4_SYS": "",
+        "ROW4_DIA": "",
+        "ROW4_PR": "",
+        "ROW4_STATE": ""
+      },
+      "disabled": [
+        10,
+        11
+      ]
+    },
+    "brightness_lower": {
+      "page": "settings",
+      "values": {
+        "BRIGHTNESS": "60%",
+        "FOOTER": "亮度已应用 · 60%"
+      }
+    },
+    "brightness_higher": {
+      "page": "settings",
+      "values": {
+        "BRIGHTNESS": "80%",
+        "FOOTER": "亮度已应用 · 80%"
+      }
+    },
+    "maintenance_granted": {
+      "page": "maintenance",
+      "values": {
+        "ACCESS_STATUS": "授权访问 · 只读信息",
+        "MAINT_LINE1": "主控版本：Vx.x  ·  屏幕版本：Vx.x",
+        "MAINT_LINE2": "模块通信：已连接",
+        "FOOTER": "维护访问已授权"
+      }
+    },
+    "time_increment": {
+      "page": "time",
+      "values": {
+        "YEAR": "2027",
+        "FOOTER": "编辑中的时间尚未保存"
+      }
+    },
+    "time_decrement": {
+      "page": "time",
+      "values": {
+        "YEAR": "2025",
+        "FOOTER": "编辑中的时间尚未保存"
+      }
+    },
+    "time_saved": {
+      "page": "settings",
+      "values": {
+        "CLOCK": "2027-09-21 09:41",
+        "DEVICE_TIME": "2027-09-21 09:41",
+        "FOOTER": "设备时间已校准"
+      }
+    },
+    "time_failed": {
+      "page": "time",
+      "values": {
+        "FOOTER": "时间保存失败 · 设备时间未更新",
+        "EDIT_HELP": "请检查日期或时间服务连接，再重试保存"
+      }
+    },
+    "time_year": {
+      "page": "time",
+      "values": {
+        "EDIT_FIELD": "正在编辑：年"
+      },
+      "selected": 10
+    },
+    "time_month": {
+      "page": "time",
+      "values": {
+        "EDIT_FIELD": "正在编辑：月"
+      },
+      "selected": 11
+    },
+    "time_day": {
+      "page": "time",
+      "values": {
+        "EDIT_FIELD": "正在编辑：日"
+      },
+      "selected": 12
+    },
+    "time_hour": {
+      "page": "time",
+      "values": {
+        "EDIT_FIELD": "正在编辑：时"
+      },
+      "selected": 13
+    },
+    "time_minute": {
+      "page": "time",
+      "values": {
+        "EDIT_FIELD": "正在编辑：分"
+      },
+      "selected": 14
+    }
+  },
+  "buttons": [
+    {
+      "key": "start",
+      "label": "开始测量",
+      "w": 280,
+      "h": 112,
+      "kind": "primary"
+    },
+    {
+      "key": "history",
+      "label": "历史",
+      "w": 132,
+      "h": 72,
+      "kind": "secondary"
+    },
+    {
+      "key": "settings",
+      "label": "设置",
+      "w": 132,
+      "h": 72,
+      "kind": "secondary"
+    },
+    {
+      "key": "stop",
+      "label": "停止测量",
+      "w": 280,
+      "h": 112,
+      "kind": "stop"
+    },
+    {
+      "key": "remeasure",
+      "label": "再次测量",
+      "w": 280,
+      "h": 112,
+      "kind": "primary"
+    },
+    {
+      "key": "new_patient",
+      "label": "换患者",
+      "w": 132,
+      "h": 72,
+      "kind": "secondary"
+    },
+    {
+      "key": "retry",
+      "label": "重新测量",
+      "w": 280,
+      "h": 112,
+      "kind": "primary"
+    },
+    {
+      "key": "back_wide",
+      "label": "返回",
+      "w": 280,
+      "h": 72,
+      "kind": "secondary"
+    },
+    {
+      "key": "previous",
+      "label": "上一页",
+      "w": 160,
+      "h": 64,
+      "kind": "secondary"
+    },
+    {
+      "key": "next",
+      "label": "下一页",
+      "w": 160,
+      "h": 64,
+      "kind": "secondary"
+    },
+    {
+      "key": "back_160",
+      "label": "返回",
+      "w": 160,
+      "h": 64,
+      "kind": "secondary"
+    },
+    {
+      "key": "brightness_minus",
+      "label": "降低",
+      "w": 124,
+      "h": 64,
+      "kind": "secondary"
+    },
+    {
+      "key": "brightness_plus",
+      "label": "提高",
+      "w": 124,
+      "h": 64,
+      "kind": "secondary"
+    },
+    {
+      "key": "set_time",
+      "label": "时间设置",
+      "w": 280,
+      "h": 64,
+      "kind": "secondary"
+    },
+    {
+      "key": "maintenance",
+      "label": "维护",
+      "w": 200,
+      "h": 64,
+      "kind": "secondary"
+    },
+    {
+      "key": "back_200",
+      "label": "返回",
+      "w": 200,
+      "h": 64,
+      "kind": "secondary"
+    },
+    {
+      "key": "back_280",
+      "label": "返回",
+      "w": 280,
+      "h": 64,
+      "kind": "secondary"
+    },
+    {
+      "key": "cancel_280",
+      "label": "取消",
+      "w": 280,
+      "h": 64,
+      "kind": "secondary"
+    },
+    {
+      "key": "confirm_session",
+      "label": "确认换患者",
+      "w": 280,
+      "h": 64,
+      "kind": "primary"
+    },
+    {
+      "key": "time_field",
+      "label": "",
+      "w": 120,
+      "h": 72,
+      "kind": "secondary"
+    },
+    {
+      "key": "time_add",
+      "label": "＋",
+      "w": 160,
+      "h": 64,
+      "kind": "secondary"
+    },
+    {
+      "key": "time_subtract",
+      "label": "－",
+      "w": 160,
+      "h": 64,
+      "kind": "secondary"
+    },
+    {
+      "key": "cancel_small",
+      "label": "取消",
+      "w": 132,
+      "h": 64,
+      "kind": "secondary"
+    },
+    {
+      "key": "save_time",
+      "label": "保存",
+      "w": 132,
+      "h": 64,
+      "kind": "primary"
+    }
+  ],
+  "actions": [
+    {
+      "source": "idle",
+      "source_id": 1,
+      "control_id": 10,
+      "button": "start",
+      "label": "开始测量",
+      "target": "starting",
+      "preview_to": "starting",
+      "effect": "发送 START；主控接受后进入 P02 启动中；拒绝时保持 P01 并更新提示。",
+      "sequence": 1,
+      "pressed_image": "transitions/a01_pressed.png",
+      "destination_image": "previews/starting.png",
+      "pair_image": "transitions/a01_pair.png"
+    },
+    {
+      "source": "idle",
+      "source_id": 1,
+      "control_id": 11,
+      "button": "history",
+      "label": "历史",
+      "target": "history",
+      "preview_to": "history",
+      "effect": "发送 OPEN_HISTORY，记录返回页 P01，主控加载本会话历史后进入 P05。",
+      "sequence": 2,
+      "pressed_image": "transitions/a02_pressed.png",
+      "destination_image": "previews/p05_history.png",
+      "pair_image": "transitions/a02_pair.png"
+    },
+    {
+      "source": "idle",
+      "source_id": 1,
+      "control_id": 12,
+      "button": "settings",
+      "label": "设置",
+      "target": "settings",
+      "preview_to": "settings",
+      "effect": "仅安全空闲时进入 P06；从主控读回当前亮度与时间。",
+      "sequence": 3,
+      "pressed_image": "transitions/a03_pressed.png",
+      "destination_image": "previews/p06_settings.png",
+      "pair_image": "transitions/a03_pair.png"
+    },
+    {
+      "source": "measuring",
+      "source_id": 2,
+      "control_id": 10,
+      "button": "stop",
+      "label": "停止测量",
+      "target": "stopping",
+      "preview_to": "stopping",
+      "effect": "发送 STOP；主控接受停止请求后进入 P08。停止不弹确认框；允许重复请求，由主控去重。",
+      "sequence": 4,
+      "pressed_image": "transitions/a04_pressed.png",
+      "destination_image": "previews/p08_stopping.png",
+      "pair_image": "transitions/a04_pair.png"
+    },
+    {
+      "source": "result",
+      "source_id": 3,
+      "control_id": 10,
+      "button": "remeasure",
+      "label": "再次测量",
+      "target": "starting",
+      "preview_to": "starting",
+      "effect": "同一会话发送 START；仅 safe_to_restart 且 start_allowed 时允许。主控接受后进入 P02。",
+      "sequence": 5,
+      "pressed_image": "transitions/a05_pressed.png",
+      "destination_image": "previews/starting.png",
+      "pair_image": "transitions/a05_pair.png"
+    },
+    {
+      "source": "result",
+      "source_id": 3,
+      "control_id": 11,
+      "button": "history",
+      "label": "历史",
+      "target": "history",
+      "preview_to": "history",
+      "effect": "发送 OPEN_HISTORY，记录返回页 P03；主控加载本会话记录后进入 P05。",
+      "sequence": 6,
+      "pressed_image": "transitions/a06_pressed.png",
+      "destination_image": "previews/p05_history.png",
+      "pair_image": "transitions/a06_pair.png"
+    },
+    {
+      "source": "result",
+      "source_id": 3,
+      "control_id": 12,
+      "button": "new_patient",
+      "label": "换患者",
+      "target": "confirm",
+      "preview_to": "confirm",
+      "effect": "仅安全空闲时显示 P09 确认页面；此时尚不更换会话。",
+      "sequence": 7,
+      "pressed_image": "transitions/a07_pressed.png",
+      "destination_image": "previews/p09_confirm.png",
+      "pair_image": "transitions/a07_pair.png"
+    },
+    {
+      "source": "notice",
+      "source_id": 4,
+      "control_id": 10,
+      "button": "retry",
+      "label": "重新测量",
+      "target": "starting",
+      "preview_to": "starting",
+      "effect": "仅 retry_allowed 且 safe_to_restart 时发送 START；主控接受后进入 P02。",
+      "sequence": 8,
+      "pressed_image": "transitions/a08_pressed.png",
+      "destination_image": "previews/starting.png",
+      "pair_image": "transitions/a08_pair.png"
+    },
+    {
+      "source": "notice",
+      "source_id": 4,
+      "control_id": 11,
+      "button": "back_wide",
+      "label": "返回",
+      "target": "idle",
+      "preview_to": "idle",
+      "effect": "仅安全空闲时进入 P01；故障未解除时保持禁止开始，不通过返回按钮绕过保护。",
+      "sequence": 9,
+      "pressed_image": "transitions/a09_pressed.png",
+      "destination_image": "previews/p01_idle.png",
+      "pair_image": "transitions/a09_pair.png"
+    },
+    {
+      "source": "history",
+      "source_id": 5,
+      "control_id": 10,
+      "button": "previous",
+      "label": "上一页",
+      "target": "history_first",
+      "preview_to": "history_first",
+      "effect": "请求前一组 4 条；页号及四行一次更新。已是第 1 页时禁用该按钮。",
+      "source_variant": "history_second",
+      "sequence": 10,
+      "pressed_image": "transitions/a10_pressed.png",
+      "destination_image": "previews/history_first.png",
+      "pair_image": "transitions/a10_pair.png"
+    },
+    {
+      "source": "history",
+      "source_id": 5,
+      "control_id": 11,
+      "button": "next",
+      "label": "下一页",
+      "target": "history_second",
+      "preview_to": "history_second",
+      "effect": "请求后一组 4 条；到末页后禁用下一页。",
+      "sequence": 11,
+      "pressed_image": "transitions/a11_pressed.png",
+      "destination_image": "previews/history_second.png",
+      "pair_image": "transitions/a11_pair.png"
+    },
+    {
+      "source": "history",
+      "source_id": 5,
+      "control_id": 12,
+      "button": "back_160",
+      "label": "返回",
+      "target": "result",
+      "preview_to": "result",
+      "effect": "返回 OPEN_HISTORY 保存的来源页 P01 或 P03；不得固定返回 P03 显示旧结果。",
+      "sequence": 12,
+      "pressed_image": "transitions/a12_pressed.png",
+      "destination_image": "previews/p03_result.png",
+      "pair_image": "transitions/a12_pair.png"
+    },
+    {
+      "source": "settings",
+      "source_id": 6,
+      "control_id": 10,
+      "button": "brightness_minus",
+      "label": "降低",
+      "target": "brightness_lower",
+      "preview_to": "brightness_lower",
+      "effect": "请求亮度减 10 个百分点；建议交互范围 30%～100%，最终范围由实屏确认。主控应用成功后回写读数。",
+      "sequence": 13,
+      "pressed_image": "transitions/a13_pressed.png",
+      "destination_image": "previews/brightness_lower.png",
+      "pair_image": "transitions/a13_pair.png"
+    },
+    {
+      "source": "settings",
+      "source_id": 6,
+      "control_id": 11,
+      "button": "brightness_plus",
+      "label": "提高",
+      "target": "brightness_higher",
+      "preview_to": "brightness_higher",
+      "effect": "请求亮度增 10 个百分点；达到上限后禁用提高。百分比到屏幕指令值的转换由主控实现。",
+      "sequence": 14,
+      "pressed_image": "transitions/a14_pressed.png",
+      "destination_image": "previews/brightness_higher.png",
+      "pair_image": "transitions/a14_pair.png"
+    },
+    {
+      "source": "settings",
+      "source_id": 6,
+      "control_id": 12,
+      "button": "set_time",
+      "label": "时间设置",
+      "target": "time",
+      "preview_to": "time",
+      "effect": "仅空闲时进入 P10；复制当前设备时间作为编辑草稿，不立即改系统时间。",
+      "sequence": 15,
+      "pressed_image": "transitions/a15_pressed.png",
+      "destination_image": "previews/p10_time.png",
+      "pair_image": "transitions/a15_pair.png"
+    },
+    {
+      "source": "settings",
+      "source_id": 6,
+      "control_id": 13,
+      "button": "maintenance",
+      "label": "维护",
+      "target": "maintenance",
+      "preview_to": "maintenance",
+      "effect": "进入 P07 的访问检查页；没有主控授权时只显示未授权说明，不提供维护命令。",
+      "sequence": 16,
+      "pressed_image": "transitions/a16_pressed.png",
+      "destination_image": "previews/p07_maintenance.png",
+      "pair_image": "transitions/a16_pair.png"
+    },
+    {
+      "source": "settings",
+      "source_id": 6,
+      "control_id": 14,
+      "button": "back_200",
+      "label": "返回",
+      "target": "idle",
+      "preview_to": "idle",
+      "effect": "返回 P01，主控回写当前会话和 start_allowed。",
+      "sequence": 17,
+      "pressed_image": "transitions/a17_pressed.png",
+      "destination_image": "previews/p01_idle.png",
+      "pair_image": "transitions/a17_pair.png"
+    },
+    {
+      "source": "maintenance",
+      "source_id": 7,
+      "control_id": 10,
+      "button": "back_280",
+      "label": "返回",
+      "target": "settings",
+      "preview_to": "settings",
+      "effect": "返回 P06；退出后是否撤销维护授权由主控权限策略决定。",
+      "sequence": 18,
+      "pressed_image": "transitions/a18_pressed.png",
+      "destination_image": "previews/p06_settings.png",
+      "pair_image": "transitions/a18_pair.png"
+    },
+    {
+      "source": "stopping",
+      "source_id": 8,
+      "control_id": 10,
+      "button": "stop",
+      "label": "停止测量",
+      "target": "stopping",
+      "preview_to": "stopping",
+      "effect": "再次发送 STOP。保持 P08，直到主控确认允许恢复；不得仅凭按钮弹起或停止 ACK 进入待机。",
+      "sequence": 19,
+      "pressed_image": "transitions/a19_pressed.png",
+      "destination_image": "previews/p08_stopping.png",
+      "pair_image": "transitions/a19_pair.png"
+    },
+    {
+      "source": "confirm",
+      "source_id": 9,
+      "control_id": 10,
+      "button": "cancel_280",
+      "label": "取消",
+      "target": "result",
+      "preview_to": "result",
+      "effect": "不创建新会话，返回来源结果页 P03；原结果继续显示。",
+      "sequence": 20,
+      "pressed_image": "transitions/a20_pressed.png",
+      "destination_image": "previews/p03_result.png",
+      "pair_image": "transitions/a20_pair.png"
+    },
+    {
+      "source": "confirm",
+      "source_id": 9,
+      "control_id": 11,
+      "button": "confirm_session",
+      "label": "确认换患者",
+      "target": "idle_new",
+      "preview_to": "idle_new",
+      "effect": "发送 NEW_SESSION；主控校验安全空闲、结束旧事务、建立新会话并清空当前显示后进入 P01。",
+      "sequence": 21,
+      "pressed_image": "transitions/a21_pressed.png",
+      "destination_image": "previews/idle_new.png",
+      "pair_image": "transitions/a21_pair.png"
+    },
+    {
+      "source": "time",
+      "source_id": 10,
+      "control_id": 10,
+      "button": "time_field",
+      "label": "选择年",
+      "target": "time_year",
+      "preview_to": "time_year",
+      "effect": "选择“年”字段，保持 P10；主控/已验证屏端逻辑回写高亮和编辑字段名。",
+      "sequence": 22,
+      "pressed_image": "transitions/a22_pressed.png",
+      "destination_image": "previews/time_year.png",
+      "pair_image": "transitions/a22_pair.png"
+    },
+    {
+      "source": "time",
+      "source_id": 10,
+      "control_id": 11,
+      "button": "time_field",
+      "label": "选择月",
+      "target": "time_month",
+      "preview_to": "time_month",
+      "effect": "选择“月”字段，保持 P10；主控/已验证屏端逻辑回写高亮和编辑字段名。",
+      "sequence": 23,
+      "pressed_image": "transitions/a23_pressed.png",
+      "destination_image": "previews/time_month.png",
+      "pair_image": "transitions/a23_pair.png"
+    },
+    {
+      "source": "time",
+      "source_id": 10,
+      "control_id": 12,
+      "button": "time_field",
+      "label": "选择日",
+      "target": "time_day",
+      "preview_to": "time_day",
+      "effect": "选择“日”字段，保持 P10；主控/已验证屏端逻辑回写高亮和编辑字段名。",
+      "sequence": 24,
+      "pressed_image": "transitions/a24_pressed.png",
+      "destination_image": "previews/time_day.png",
+      "pair_image": "transitions/a24_pair.png"
+    },
+    {
+      "source": "time",
+      "source_id": 10,
+      "control_id": 13,
+      "button": "time_field",
+      "label": "选择时",
+      "target": "time_hour",
+      "preview_to": "time_hour",
+      "effect": "选择“时”字段，保持 P10；主控/已验证屏端逻辑回写高亮和编辑字段名。",
+      "sequence": 25,
+      "pressed_image": "transitions/a25_pressed.png",
+      "destination_image": "previews/time_hour.png",
+      "pair_image": "transitions/a25_pair.png"
+    },
+    {
+      "source": "time",
+      "source_id": 10,
+      "control_id": 14,
+      "button": "time_field",
+      "label": "选择分",
+      "target": "time_minute",
+      "preview_to": "time_minute",
+      "effect": "选择“分”字段，保持 P10；主控/已验证屏端逻辑回写高亮和编辑字段名。",
+      "sequence": 26,
+      "pressed_image": "transitions/a26_pressed.png",
+      "destination_image": "previews/time_minute.png",
+      "pair_image": "transitions/a26_pair.png"
+    },
+    {
+      "source": "time",
+      "source_id": 10,
+      "control_id": 15,
+      "button": "time_add",
+      "label": "＋",
+      "target": "time_increment",
+      "preview_to": "time_increment",
+      "effect": "将当前选中字段加 1，示例为年份 2026→2027；只改草稿。调整月份/年份时重新校验日期。",
+      "sequence": 27,
+      "pressed_image": "transitions/a27_pressed.png",
+      "destination_image": "previews/time_increment.png",
+      "pair_image": "transitions/a27_pair.png"
+    },
+    {
+      "source": "time",
+      "source_id": 10,
+      "control_id": 16,
+      "button": "time_subtract",
+      "label": "－",
+      "target": "time_decrement",
+      "preview_to": "time_decrement",
+      "effect": "将当前选中字段减 1，示例为年份 2026→2025；只改草稿。边界由实际 RTC 能力限定。",
+      "sequence": 28,
+      "pressed_image": "transitions/a28_pressed.png",
+      "destination_image": "previews/time_decrement.png",
+      "pair_image": "transitions/a28_pair.png"
+    },
+    {
+      "source": "time",
+      "source_id": 10,
+      "control_id": 17,
+      "button": "cancel_small",
+      "label": "取消",
+      "target": "settings",
+      "preview_to": "settings",
+      "effect": "丢弃编辑草稿，返回 P06，设备时间不变。",
+      "sequence": 29,
+      "pressed_image": "transitions/a29_pressed.png",
+      "destination_image": "previews/p06_settings.png",
+      "pair_image": "transitions/a29_pair.png"
+    },
+    {
+      "source": "time",
+      "source_id": 10,
+      "control_id": 18,
+      "button": "save_time",
+      "label": "保存",
+      "target": "time_saved",
+      "preview_to": "time_saved",
+      "effect": "发送 SET_TIME 草稿；主控校验日期且 RTC 写入并读回成功后返回 P06；失败留在 P10 显示原因。",
+      "source_variant": "time_increment",
+      "sequence": 30,
+      "pressed_image": "transitions/a30_pressed.png",
+      "destination_image": "previews/time_saved.png",
+      "pair_image": "transitions/a30_pair.png"
+    },
+    {
+      "source": "notice",
+      "source_id": 4,
+      "source_variant": "notice_locked",
+      "control_id": 10,
+      "button": "stop",
+      "label": "停止测量（故障锁定时）",
+      "target": "stopping",
+      "preview_to": "stopping",
+      "effect": "P04 状态不明时 ID10 绑定 STOP；不得继续解释为重试。主控接受后显示 P08；无应答时保持锁定。",
+      "sequence": 31,
+      "pressed_image": "transitions/a31_pressed.png",
+      "destination_image": "previews/p08_stopping.png",
+      "pair_image": "transitions/a31_pair.png"
+    },
+    {
+      "source": "history",
+      "source_id": 5,
+      "control_id": 12,
+      "button": "back_160",
+      "label": "返回（从待机进入历史）",
+      "target": "idle",
+      "preview_to": "idle",
+      "effect": "当 history_origin=P01 时返回 P01；这里补充另一条返回路径。",
+      "sequence": 32,
+      "pressed_image": "transitions/a32_pressed.png",
+      "destination_image": "previews/p01_idle.png",
+      "pair_image": "transitions/a32_pair.png"
+    }
+  ],
+  "renders": [
+    {
+      "svg": "sources/assets__backgrounds__p00_boot.svg",
+      "png": "assets/backgrounds/p00_boot.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p00_boot.svg",
+      "png": "previews/p00_boot.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p00_boot_controls.svg",
+      "png": "previews/p00_boot_controls.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/assets__backgrounds__p01_idle.svg",
+      "png": "assets/backgrounds/p01_idle.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p01_idle.svg",
+      "png": "previews/p01_idle.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p01_idle_controls.svg",
+      "png": "previews/p01_idle_controls.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/assets__backgrounds__p02_measuring.svg",
+      "png": "assets/backgrounds/p02_measuring.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p02_measuring.svg",
+      "png": "previews/p02_measuring.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p02_measuring_controls.svg",
+      "png": "previews/p02_measuring_controls.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/assets__backgrounds__p03_result.svg",
+      "png": "assets/backgrounds/p03_result.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p03_result.svg",
+      "png": "previews/p03_result.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p03_result_controls.svg",
+      "png": "previews/p03_result_controls.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/assets__backgrounds__p04_notice.svg",
+      "png": "assets/backgrounds/p04_notice.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p04_notice.svg",
+      "png": "previews/p04_notice.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p04_notice_controls.svg",
+      "png": "previews/p04_notice_controls.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/assets__backgrounds__p05_history.svg",
+      "png": "assets/backgrounds/p05_history.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p05_history.svg",
+      "png": "previews/p05_history.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p05_history_controls.svg",
+      "png": "previews/p05_history_controls.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/assets__backgrounds__p06_settings.svg",
+      "png": "assets/backgrounds/p06_settings.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p06_settings.svg",
+      "png": "previews/p06_settings.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p06_settings_controls.svg",
+      "png": "previews/p06_settings_controls.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/assets__backgrounds__p07_maintenance.svg",
+      "png": "assets/backgrounds/p07_maintenance.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p07_maintenance.svg",
+      "png": "previews/p07_maintenance.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p07_maintenance_controls.svg",
+      "png": "previews/p07_maintenance_controls.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/assets__backgrounds__p08_stopping.svg",
+      "png": "assets/backgrounds/p08_stopping.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p08_stopping.svg",
+      "png": "previews/p08_stopping.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p08_stopping_controls.svg",
+      "png": "previews/p08_stopping_controls.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/assets__backgrounds__p09_confirm.svg",
+      "png": "assets/backgrounds/p09_confirm.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p09_confirm.svg",
+      "png": "previews/p09_confirm.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p09_confirm_controls.svg",
+      "png": "previews/p09_confirm_controls.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/assets__backgrounds__p10_time.svg",
+      "png": "assets/backgrounds/p10_time.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p10_time.svg",
+      "png": "previews/p10_time.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__p10_time_controls.svg",
+      "png": "previews/p10_time_controls.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__starting.svg",
+      "png": "previews/starting.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__pressure_stale.svg",
+      "png": "previews/pressure_stale.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__idle_new.svg",
+      "png": "previews/idle_new.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__idle_cancelled.svg",
+      "png": "previews/idle_cancelled.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__idle_blocked.svg",
+      "png": "previews/idle_blocked.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__notice_locked.svg",
+      "png": "previews/notice_locked.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__history_first.svg",
+      "png": "previews/history_first.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__history_second.svg",
+      "png": "previews/history_second.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__history_empty.svg",
+      "png": "previews/history_empty.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__brightness_lower.svg",
+      "png": "previews/brightness_lower.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__brightness_higher.svg",
+      "png": "previews/brightness_higher.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__maintenance_granted.svg",
+      "png": "previews/maintenance_granted.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__time_increment.svg",
+      "png": "previews/time_increment.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__time_decrement.svg",
+      "png": "previews/time_decrement.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__time_saved.svg",
+      "png": "previews/time_saved.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__time_failed.svg",
+      "png": "previews/time_failed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__time_year.svg",
+      "png": "previews/time_year.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__time_month.svg",
+      "png": "previews/time_month.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__time_day.svg",
+      "png": "previews/time_day.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__time_hour.svg",
+      "png": "previews/time_hour.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/previews__time_minute.svg",
+      "png": "previews/time_minute.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/assets__buttons__start_up.svg",
+      "png": "assets/buttons/start_up.png",
+      "width": 280,
+      "height": 112
+    },
+    {
+      "svg": "sources/assets__buttons__start_down.svg",
+      "png": "assets/buttons/start_down.png",
+      "width": 280,
+      "height": 112
+    },
+    {
+      "svg": "sources/assets__buttons__start_disabled.svg",
+      "png": "assets/buttons/start_disabled.png",
+      "width": 280,
+      "height": 112
+    },
+    {
+      "svg": "sources/assets__buttons__history_up.svg",
+      "png": "assets/buttons/history_up.png",
+      "width": 132,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__history_down.svg",
+      "png": "assets/buttons/history_down.png",
+      "width": 132,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__history_disabled.svg",
+      "png": "assets/buttons/history_disabled.png",
+      "width": 132,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__settings_up.svg",
+      "png": "assets/buttons/settings_up.png",
+      "width": 132,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__settings_down.svg",
+      "png": "assets/buttons/settings_down.png",
+      "width": 132,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__settings_disabled.svg",
+      "png": "assets/buttons/settings_disabled.png",
+      "width": 132,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__stop_up.svg",
+      "png": "assets/buttons/stop_up.png",
+      "width": 280,
+      "height": 112
+    },
+    {
+      "svg": "sources/assets__buttons__stop_down.svg",
+      "png": "assets/buttons/stop_down.png",
+      "width": 280,
+      "height": 112
+    },
+    {
+      "svg": "sources/assets__buttons__stop_disabled.svg",
+      "png": "assets/buttons/stop_disabled.png",
+      "width": 280,
+      "height": 112
+    },
+    {
+      "svg": "sources/assets__buttons__remeasure_up.svg",
+      "png": "assets/buttons/remeasure_up.png",
+      "width": 280,
+      "height": 112
+    },
+    {
+      "svg": "sources/assets__buttons__remeasure_down.svg",
+      "png": "assets/buttons/remeasure_down.png",
+      "width": 280,
+      "height": 112
+    },
+    {
+      "svg": "sources/assets__buttons__remeasure_disabled.svg",
+      "png": "assets/buttons/remeasure_disabled.png",
+      "width": 280,
+      "height": 112
+    },
+    {
+      "svg": "sources/assets__buttons__new_patient_up.svg",
+      "png": "assets/buttons/new_patient_up.png",
+      "width": 132,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__new_patient_down.svg",
+      "png": "assets/buttons/new_patient_down.png",
+      "width": 132,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__new_patient_disabled.svg",
+      "png": "assets/buttons/new_patient_disabled.png",
+      "width": 132,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__retry_up.svg",
+      "png": "assets/buttons/retry_up.png",
+      "width": 280,
+      "height": 112
+    },
+    {
+      "svg": "sources/assets__buttons__retry_down.svg",
+      "png": "assets/buttons/retry_down.png",
+      "width": 280,
+      "height": 112
+    },
+    {
+      "svg": "sources/assets__buttons__retry_disabled.svg",
+      "png": "assets/buttons/retry_disabled.png",
+      "width": 280,
+      "height": 112
+    },
+    {
+      "svg": "sources/assets__buttons__back_wide_up.svg",
+      "png": "assets/buttons/back_wide_up.png",
+      "width": 280,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__back_wide_down.svg",
+      "png": "assets/buttons/back_wide_down.png",
+      "width": 280,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__back_wide_disabled.svg",
+      "png": "assets/buttons/back_wide_disabled.png",
+      "width": 280,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__previous_up.svg",
+      "png": "assets/buttons/previous_up.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__previous_down.svg",
+      "png": "assets/buttons/previous_down.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__previous_disabled.svg",
+      "png": "assets/buttons/previous_disabled.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__next_up.svg",
+      "png": "assets/buttons/next_up.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__next_down.svg",
+      "png": "assets/buttons/next_down.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__next_disabled.svg",
+      "png": "assets/buttons/next_disabled.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__back_160_up.svg",
+      "png": "assets/buttons/back_160_up.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__back_160_down.svg",
+      "png": "assets/buttons/back_160_down.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__back_160_disabled.svg",
+      "png": "assets/buttons/back_160_disabled.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__brightness_minus_up.svg",
+      "png": "assets/buttons/brightness_minus_up.png",
+      "width": 124,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__brightness_minus_down.svg",
+      "png": "assets/buttons/brightness_minus_down.png",
+      "width": 124,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__brightness_minus_disabled.svg",
+      "png": "assets/buttons/brightness_minus_disabled.png",
+      "width": 124,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__brightness_plus_up.svg",
+      "png": "assets/buttons/brightness_plus_up.png",
+      "width": 124,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__brightness_plus_down.svg",
+      "png": "assets/buttons/brightness_plus_down.png",
+      "width": 124,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__brightness_plus_disabled.svg",
+      "png": "assets/buttons/brightness_plus_disabled.png",
+      "width": 124,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__set_time_up.svg",
+      "png": "assets/buttons/set_time_up.png",
+      "width": 280,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__set_time_down.svg",
+      "png": "assets/buttons/set_time_down.png",
+      "width": 280,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__set_time_disabled.svg",
+      "png": "assets/buttons/set_time_disabled.png",
+      "width": 280,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__maintenance_up.svg",
+      "png": "assets/buttons/maintenance_up.png",
+      "width": 200,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__maintenance_down.svg",
+      "png": "assets/buttons/maintenance_down.png",
+      "width": 200,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__maintenance_disabled.svg",
+      "png": "assets/buttons/maintenance_disabled.png",
+      "width": 200,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__back_200_up.svg",
+      "png": "assets/buttons/back_200_up.png",
+      "width": 200,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__back_200_down.svg",
+      "png": "assets/buttons/back_200_down.png",
+      "width": 200,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__back_200_disabled.svg",
+      "png": "assets/buttons/back_200_disabled.png",
+      "width": 200,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__back_280_up.svg",
+      "png": "assets/buttons/back_280_up.png",
+      "width": 280,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__back_280_down.svg",
+      "png": "assets/buttons/back_280_down.png",
+      "width": 280,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__back_280_disabled.svg",
+      "png": "assets/buttons/back_280_disabled.png",
+      "width": 280,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__cancel_280_up.svg",
+      "png": "assets/buttons/cancel_280_up.png",
+      "width": 280,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__cancel_280_down.svg",
+      "png": "assets/buttons/cancel_280_down.png",
+      "width": 280,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__cancel_280_disabled.svg",
+      "png": "assets/buttons/cancel_280_disabled.png",
+      "width": 280,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__confirm_session_up.svg",
+      "png": "assets/buttons/confirm_session_up.png",
+      "width": 280,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__confirm_session_down.svg",
+      "png": "assets/buttons/confirm_session_down.png",
+      "width": 280,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__confirm_session_disabled.svg",
+      "png": "assets/buttons/confirm_session_disabled.png",
+      "width": 280,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__time_field_up.svg",
+      "png": "assets/buttons/time_field_up.png",
+      "width": 120,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__time_field_down.svg",
+      "png": "assets/buttons/time_field_down.png",
+      "width": 120,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__time_field_disabled.svg",
+      "png": "assets/buttons/time_field_disabled.png",
+      "width": 120,
+      "height": 72
+    },
+    {
+      "svg": "sources/assets__buttons__time_add_up.svg",
+      "png": "assets/buttons/time_add_up.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__time_add_down.svg",
+      "png": "assets/buttons/time_add_down.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__time_add_disabled.svg",
+      "png": "assets/buttons/time_add_disabled.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__time_subtract_up.svg",
+      "png": "assets/buttons/time_subtract_up.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__time_subtract_down.svg",
+      "png": "assets/buttons/time_subtract_down.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__time_subtract_disabled.svg",
+      "png": "assets/buttons/time_subtract_disabled.png",
+      "width": 160,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__cancel_small_up.svg",
+      "png": "assets/buttons/cancel_small_up.png",
+      "width": 132,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__cancel_small_down.svg",
+      "png": "assets/buttons/cancel_small_down.png",
+      "width": 132,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__cancel_small_disabled.svg",
+      "png": "assets/buttons/cancel_small_disabled.png",
+      "width": 132,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__save_time_up.svg",
+      "png": "assets/buttons/save_time_up.png",
+      "width": 132,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__save_time_down.svg",
+      "png": "assets/buttons/save_time_down.png",
+      "width": 132,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__save_time_disabled.svg",
+      "png": "assets/buttons/save_time_disabled.png",
+      "width": 132,
+      "height": 64
+    },
+    {
+      "svg": "sources/assets__buttons__time_field_selected.svg",
+      "png": "assets/buttons/time_field_selected.png",
+      "width": 120,
+      "height": 72
+    },
+    {
+      "svg": "sources/transitions__a01_pressed.svg",
+      "png": "transitions/a01_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a01_pair.svg",
+      "png": "transitions/a01_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a02_pressed.svg",
+      "png": "transitions/a02_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a02_pair.svg",
+      "png": "transitions/a02_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a03_pressed.svg",
+      "png": "transitions/a03_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a03_pair.svg",
+      "png": "transitions/a03_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a04_pressed.svg",
+      "png": "transitions/a04_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a04_pair.svg",
+      "png": "transitions/a04_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a05_pressed.svg",
+      "png": "transitions/a05_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a05_pair.svg",
+      "png": "transitions/a05_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a06_pressed.svg",
+      "png": "transitions/a06_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a06_pair.svg",
+      "png": "transitions/a06_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a07_pressed.svg",
+      "png": "transitions/a07_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a07_pair.svg",
+      "png": "transitions/a07_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a08_pressed.svg",
+      "png": "transitions/a08_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a08_pair.svg",
+      "png": "transitions/a08_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a09_pressed.svg",
+      "png": "transitions/a09_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a09_pair.svg",
+      "png": "transitions/a09_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a10_pressed.svg",
+      "png": "transitions/a10_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a10_pair.svg",
+      "png": "transitions/a10_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a11_pressed.svg",
+      "png": "transitions/a11_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a11_pair.svg",
+      "png": "transitions/a11_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a12_pressed.svg",
+      "png": "transitions/a12_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a12_pair.svg",
+      "png": "transitions/a12_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a13_pressed.svg",
+      "png": "transitions/a13_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a13_pair.svg",
+      "png": "transitions/a13_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a14_pressed.svg",
+      "png": "transitions/a14_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a14_pair.svg",
+      "png": "transitions/a14_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a15_pressed.svg",
+      "png": "transitions/a15_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a15_pair.svg",
+      "png": "transitions/a15_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a16_pressed.svg",
+      "png": "transitions/a16_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a16_pair.svg",
+      "png": "transitions/a16_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a17_pressed.svg",
+      "png": "transitions/a17_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a17_pair.svg",
+      "png": "transitions/a17_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a18_pressed.svg",
+      "png": "transitions/a18_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a18_pair.svg",
+      "png": "transitions/a18_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a19_pressed.svg",
+      "png": "transitions/a19_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a19_pair.svg",
+      "png": "transitions/a19_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a20_pressed.svg",
+      "png": "transitions/a20_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a20_pair.svg",
+      "png": "transitions/a20_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a21_pressed.svg",
+      "png": "transitions/a21_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a21_pair.svg",
+      "png": "transitions/a21_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a22_pressed.svg",
+      "png": "transitions/a22_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a22_pair.svg",
+      "png": "transitions/a22_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a23_pressed.svg",
+      "png": "transitions/a23_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a23_pair.svg",
+      "png": "transitions/a23_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a24_pressed.svg",
+      "png": "transitions/a24_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a24_pair.svg",
+      "png": "transitions/a24_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a25_pressed.svg",
+      "png": "transitions/a25_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a25_pair.svg",
+      "png": "transitions/a25_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a26_pressed.svg",
+      "png": "transitions/a26_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a26_pair.svg",
+      "png": "transitions/a26_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a27_pressed.svg",
+      "png": "transitions/a27_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a27_pair.svg",
+      "png": "transitions/a27_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a28_pressed.svg",
+      "png": "transitions/a28_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a28_pair.svg",
+      "png": "transitions/a28_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a29_pressed.svg",
+      "png": "transitions/a29_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a29_pair.svg",
+      "png": "transitions/a29_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a30_pressed.svg",
+      "png": "transitions/a30_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a30_pair.svg",
+      "png": "transitions/a30_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a31_pressed.svg",
+      "png": "transitions/a31_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a31_pair.svg",
+      "png": "transitions/a31_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/transitions__a32_pressed.svg",
+      "png": "transitions/a32_pressed.png",
+      "width": 800,
+      "height": 480
+    },
+    {
+      "svg": "sources/transitions__a32_pair.svg",
+      "png": "transitions/a32_pair.png",
+      "width": 1648,
+      "height": 556
+    },
+    {
+      "svg": "sources/previews__all_pages.svg",
+      "png": "previews/all_pages.png",
+      "width": 1648,
+      "height": 3376
+    },
+    {
+      "svg": "sources/previews__core_pages.svg",
+      "png": "previews/core_pages.png",
+      "width": 1648,
+      "height": 1100
+    }
+  ]
+}
