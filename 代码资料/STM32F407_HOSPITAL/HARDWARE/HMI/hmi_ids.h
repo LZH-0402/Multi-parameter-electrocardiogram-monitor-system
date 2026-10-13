@@ -8,21 +8,11 @@
  *
  * 画面 ID 发生变化时，必须重新编译工程并同步本文件。
  *
- * ★★ 控件归属约定（2026-10-10 **二次更正**，以此为准）★★
- *   上一版"屏工程 main.lua 直接执行/或永不执行"两种相反判断都不对，正确结论是：
- *   **main.lua 会执行，并且与 MCU 抢着写同一批控件**，必须把它停掉。三条证据：
- *     1) 每次编译都把工程根目录 main.lua 原样拷到 dciot_build\private\main.lua
- *        （两者 md5 完全相同 3ad194f6ef22bb6adee423a380ebfb6a），脚本随工程下发；
- *     2) SPO2_Hospital.tftprj 里 LUAPrecompile="0"，而该项在 VisualTFT 里的
- *        中文名就是"**预编译LUA**"（勾选框），0 = 不在上位机预编译；
- *     3) 现象与 main.lua 源码逐条对上：
- *        - "监护时间永远是 00:00:01" <- on_init 的 start_timer(0,1000,0,1)
- *          repeat=1 只触发一次，on_timer 把 monitor_sec 加到 1 后再不触发，
- *          而每次进主界面 refresh_main() 都写 fmt_hms(1)=00:00:01；
- *        - "暂停后按钮文案不变" <- refresh_main() 用 Lua 自己的 paused(=false)
- *          把 12/20 覆盖回"测量有效 / 脉搏波采集中"。
- *   => 处理：main.lua 已替换为空壳脚本（原版备份 main.lua.原版备份.txt），
- *      **全部动态内容改由 MCU 独占写入**。
+ * 控件归属约定：
+ *   屏工程根目录的 main.lua 会在屏内执行，并与 MCU 抢写同一批控件，
+ *   故已替换为空壳脚本（原版备份 main.lua.原版备份.txt），
+ *   全部动态内容改由 MCU 独占写入；否则会出现监护时间恒为 00:00:01、
+ *   暂停后按钮文案不变等现象。
  *
  *   【MCU 负责写】：
  *     MAIN_TXT_SPO2(10) MAIN_TXT_PR(11) MAIN_TXT_QUALITY(17)
@@ -41,17 +31,17 @@
  *     暂停弹窗 PAU_TXT_CONTEXT(10)
  *     屏 RTC —— 用 EE 81 指令设置（控件 92 是 type="rtc"，写文本无效）
  *
- *   【按钮配置约定（权威，依据 VisualTFT 内 button_type 枚举 + 官方例程）】
+ *   按钮配置约定（依据 VisualTFT 内 button_type 枚举 + 官方例程）：
  *     button_type  OPTIONS="切换画面;开关描述;自定义按键;自定义指令;弹出菜单;"
  *                  ENUMS="0;1;2;3;4;"
- *       =0 切换画面：屏按 switch 属性自己跳页；**实测不可靠上报按键事件**
+ *       =0 切换画面：屏按 switch 属性自己跳页；实测不可靠上报按键事件
  *       =1 开关描述：只上报事件、不跳页（switch 必须留空）—— 要 MCU 干活的按钮都用它
  *     button_style OPTIONS="瞬变;开关;置位;复位;长按;延时;" ENUMS="0;1;2;3;4;5;"
  *       =0 瞬变（点动按钮）/ =1 开关（切换型按钮，如声音提示、时段选择）
  *     notify_disable OPTIONS="否;是" ENUMS="1;0"  -> 0 = 上传按键事件（要留 0）
  *
  *   本工程 tftprj: DeviceControlNotify="3" = "按下和弹起都上报"，
- *   所以一次点击会收到 **两帧**（state=1 按下 / state=0 弹起）。
+ *   所以一次点击会收到两帧（state=1 按下 / state=0 弹起）。
  *   凡翻转型动作必须只在 state==1 时执行，否则一次点击翻转两次 = 没反应。
  *
  *   分工：
@@ -102,14 +92,10 @@
 #define MAIN_RTC_CLOCK      92  /* type="rtc"，屏内部时钟 [用 EE 81 设 RTC，不能写文本] */
 
 /* ============================ 趋势 (1) ============================ *
- * ★ 2026-10-10 修复"趋势曲线是一条死直线"：
- *   1) 两个 historygraph 的 sample_data_foramt 由 0(UINT8/每点 1 字节)
- *      改为 2(UINT16/每点 2 字节)，与 HMI_HistorySampleU16() 对齐 —— 这是根因。
- *   2) sample_cycle 60s -> 2s，曲线每 2 秒落一个点，演示时立刻能看出在动。
- *   3) 三个时段按钮由 30分钟/2小时/8小时 改为 1分钟/5分钟/30分钟
- *      （2 秒/点：30 点=1 分钟、150 点=5 分钟、900 点=30 分钟，均在 1024 点缓存内）。
- *      按钮文字烤在 PNG 里，图片由 tools/gen_range_buttons.py 重绘。
- */
+ * historygraph 配置：sample_data_foramt=2(UINT16/每点 2 字节)，与 HMI_HistorySampleU16() 对齐；
+ * sample_cycle=2s，曲线每 2 秒落一个点。
+ * 三个时段按钮：2 秒/点 → 30 点=1 分钟、150 点=5 分钟、900 点=30 分钟，均在 1024 点缓存内。
+ * 按钮文字烤在 PNG 里，图片由 tools/gen_range_buttons.py 生成。 */
 #define TRD_BTN_1MIN        1   /* 开关型按钮，选中态由 MCU 用 EE B1 10 回写 */
 #define TRD_BTN_5MIN        2
 #define TRD_BTN_30MIN       3
@@ -155,10 +141,9 @@
 #define SET_TXT_SOUND_ST    13  /* "声音提示已开启/关闭"，由 MCU 写 */
 
 /* ============================ 暂停监护 (4) ============================ */
-/* ★ 2026-10-10：btn_confirm_pause 已从 button_type=0(switch="主界面") 改为
- *   button_type=1 + button_style=0 + switch=""（只上报、不跳页），
- *   跳回主界面改由 MCU 在收到通知后发 EE B1 00 完成。
- *   取消/返回键保持 button_type=0 原生跳页，作为"卡在弹窗页"的兜底出口。 */
+/* btn_confirm_pause 为 button_type=1 + button_style=0 + switch=""（只上报、不跳页），
+ * 跳回主界面由 MCU 收到通知后发 EE B1 00 完成。
+ * 取消/返回键保持 button_type=0 原生跳页，作为"卡在弹窗页"的兜底出口。 */
 #define PAU_BTN_CANCEL      1   /* switch="主界面"，type=0 原生跳页，不改状态 */
 #define PAU_BTN_CONFIRM     2   /* type=1(只上报)；MCU 翻转 g_paused + 发 EE B1 00 跳页 */
 #define PAU_BTN_BACK        3   /* switch="主界面"，type=0 原生跳页 */
@@ -179,8 +164,7 @@
 #define PRB_TXT_FOOTER      20
 
 /* ============================ 清空报警记录 (6) ============================ */
-/* ★ 2026-10-10：btn_confirm_clear 同样改成 button_type=1 + switch=""，
-   跳回"报警记录"页由 MCU 收到通知后发 EE B1 00 完成。 */
+/* btn_confirm_clear 为 button_type=1 + switch=""，跳回"报警记录"页由 MCU 收到通知后发 EE B1 00 完成。 */
 #define CLR_BTN_CANCEL      1   /* switch="报警记录"，type=0 原生跳页 */
 #define CLR_BTN_CONFIRM     2   /* type=1(只上报)；MCU 清记录 + 发 EE B1 00 跳页 */
 #define CLR_BTN_BACK        3   /* switch="报警记录"，type=0 原生跳页 */

@@ -7,30 +7,26 @@
  *   USART3(PB10/PB11) 血压屏 9600 （RS232 经 SP3232 通道2 → COM_G），hmi_dacai 驱动（本文件）。
  *   UART5 (PC12/PD2)  血压传感器 115200（TTL） → HKB-08B+ 血压模块，组帧 / 解帧。
  *   USART6(PC6/PC7)   血氧传感器 57600 → UNO(AFE4490)（SPO2 子系统）。
- *   注：血压屏由 USART2 改为 USART3，正是为了给第二块屏腾出 USART2 并让两屏并行。
  *
  * 二、屏页面与控件（BP_Hospital.tftprj，无 boot 页，页号 0~9）
  *   0=idle 1=measuring 2=result 3=notice 4=history 5=settings
  *   6=maintenance 7=stopping 8=confirm 9=time
  *   公共控件：100=CLOCK 101=CONTEXT 102=FOOTER 103=TIP_TITLE 104=TIP_DETAIL
  *   关键控件：结果页 110=SYS 111=DIA 112=PR；结果提示 103/104；历史页 110~133(4行×6列)+140页标。
- *
- *   ★ 100=CLOCK 已从"文本控件"改为 **RTC 控件(type="rtc")**（2026-10-12 第三次时钟改造）：
- *     不再由 MCU 逐秒写文本，改为 MCU 用 `EE 81`（hmi_set_rtc）设置屏内 RTC，屏自己走。
- *     10 页共用同一个屏内 RTC，切页天然一致；与血氧屏 dc_hmi 的 HMI_SetRTCTime() 同指令
- *     同字段顺序，两块屏同一时刻下发同一时间值 ⇒ 两屏时钟完全同源。
- *     屏工程需在 VisualTFT 里重新编译 + 下载才会生效（原文件已备份到 _bak_before_rtc\）。
+ *   100=CLOCK 为屏内 RTC 控件(type="rtc")：由 MCU 用 EE 81(hmi_set_rtc) 设置后屏自行走时，
+ *   10 页共用同一个屏内 RTC，切页天然一致；与血氧屏 HMI_SetRTCTime() 同指令、同字段顺序，
+ *   两屏同一时刻下发同一时间值，时钟同源。
  *
  * 三、状态机（测量生命周期）
  *   ST_IDLE → ST_MEASURING → ST_STOPPING → ST_IDLE
  *   由 s_state 记录；stop_measure 后若 1.5s 内没收到传感器 0xA1 应答，app_loop 强制回 IDLE。
  *
- * 四、正常 / 异常分级（步骤7，落地点见 bp_classify / bp_pr_note / result_show）
+ * 四、正常 / 异常分级（落地点见 bp_classify / bp_pr_note / result_show）
  *   收缩压 <90 偏低 / 90~139 正常 / 140~159 偏高(1级) / ≥160 高血压(2级)
  *   舒张压 <60 偏低 / 60~89 正常 / 90~99 偏高(1级) / ≥100 高血压(2级)
  *   脉率 <60 偏慢 / 60~100 正常 / >100 偏快（仅提示，不计入血压分级）
  *
- * 五、代码执行主流程（详见《血压代码编程思路与执行流程.md》）
+ * 五、代码执行主流程
  *   上电 → main() → app_init()（GPIO/NVIC/DMA/UART/屏/传感器初始化 + 首次写屏 RTC）
  *        → while(1) app_loop()：
  *           1) 把环形缓冲里的屏字节(s_q2)送 hmi_rx_feed 组帧，按钮事件在 hmi_rx_frame 分发；
@@ -50,115 +46,115 @@
 #include "app_bp.h"
 #include "merge_cfg.h"
 #include "app_bloodoxygen.h"   /* spo2_rtc_set：血压页改时间后同步血氧侧软 RTC */
-/* g_hmi_cur_screen(当前可见页) 的 extern 已由上方 #include "hmi_dacai.h" 提供。
- * 时钟改成屏内 RTC 后它不再参与时钟刷新，仅作状态记录/诊断用。 */
+/* g_hmi_cur_screen(当前可见页) 的 extern 由上方 #include "hmi_dacai.h" 提供，
+ * 时钟改成屏内 RTC 后不再参与时钟刷新，仅作状态记录/诊断用。 */
 
 extern uint32_t SystemCoreClock;
 
 #define DEBUG_UART  USART1
    #define SCREEN_UART USART3   /* 血压屏（经 SP3232 通道2 → COM_G，RS232 @9600） */
    #define SENSOR_UART UART5    /* 血压传感器 HKB-08B+（PC12/PD2，TTL @115200） */
-#define HMI_SCREEN_IDLE        0u    
-    #define HMI_SCREEN_MEASURING   1u    
-    #define HMI_SCREEN_RESULT      2u    
-    #define HMI_SCREEN_NOTICE      3u    
-    #define HMI_SCREEN_HISTORY     4u    
-    #define HMI_SCREEN_SETTINGS    5u
-#define HMI_SCREEN_MAINTENANCE 6u
-#define HMI_SCREEN_STOPPING    7u    
-    #define HMI_SCREEN_CONFIRM     8u
-#define HMI_SCREEN_TIME        9u    
-#define HMI_CTRL_CLOCK         100u  
-  #define HMI_CTRL_CONTEXT       101u
-#define HMI_CTRL_FOOTER        102u
-#define HMI_CTRL_TIP_TITLE     103u
-#define HMI_CTRL_TIP_DETAIL    104u
+#define HMI_SCREEN_IDLE        0u      /* 空闲页 */
+    #define HMI_SCREEN_MEASURING   1u      /* 测量中页 */
+    #define HMI_SCREEN_RESULT      2u      /* 结果页 */
+    #define HMI_SCREEN_NOTICE      3u      /* 通知/错误页 */
+    #define HMI_SCREEN_HISTORY     4u      /* 历史页 */
+    #define HMI_SCREEN_SETTINGS    5u      /* 设置页（无公共状态控件） */
+#define HMI_SCREEN_MAINTENANCE 6u      /* 维护页（无公共状态控件） */
+#define HMI_SCREEN_STOPPING    7u      /* 停止中页 */
+    #define HMI_SCREEN_CONFIRM     8u      /* 确认页（无公共状态控件） */
+#define HMI_SCREEN_TIME        9u      /* 时间编辑页（无公共状态控件） */
+#define HMI_CTRL_CLOCK         100u    /* 时钟控件（屏内 RTC 类型） */
+  #define HMI_CTRL_CONTEXT       101u    /* 上下文文本，内容见 ST_TXT_CONTEXT_* */
+#define HMI_CTRL_FOOTER        102u    /* 页脚文本，内容见 ST_TXT_FOOTER_* */
+#define HMI_CTRL_TIP_TITLE     103u    /* 提示标题，内容见 ST_TXT_TIP_* */
+#define HMI_CTRL_TIP_DETAIL    104u    /* 提示详情 */
 
-#define HMI_CTRL_IDLE_LAST_RESULT  110u  
-  #define HMI_CTRL_IDLE_LAST_INFO    111u  
-  #define HMI_CTRL_MEAS_STATUS       110u  
-  #define HMI_CTRL_MEAS_PRESSURE     111u  
-  #define HMI_CTRL_MEAS_ELAPSED      112u  
-  #define HMI_CTRL_RESULT_SYS        110u  
-  #define HMI_CTRL_RESULT_DIA        111u  
-  #define HMI_CTRL_RESULT_PR         112u  
-  #define HMI_CTRL_NOTICE_ERRCODE    110u  
-  #define HMI_CTRL_NOTICE_TITLE      111u  
-  #define HMI_CTRL_NOTICE_LINE1      112u  
-  #define HMI_CTRL_NOTICE_LINE2      113u  
-  #define HMI_CTRL_NOTICE_VALIDITY   114u  
-  #define HMI_CTRL_STOP_STATUS       110u  
-  #define HMI_CTRL_STOP_PRESSURE     111u  
-  #define HMI_CTRL_STOP_DETAIL       112u  
-  #define HMI_CTRL_HIST_PAGE_INDEX   140u  
-  #define HMI_CTRL_HIST_ROW0         110u  
-  #define HMI_CTRL_HIST_COLS         6u
+#define HMI_CTRL_IDLE_LAST_RESULT  110u    /* idle 页 “上次结果”，显示 "SYS/DIA" */
+  #define HMI_CTRL_IDLE_LAST_INFO    111u    /* idle 页 “上次信息”，显示 "PR=n" */
+  #define HMI_CTRL_MEAS_STATUS       110u    /* measuring 页 测量状态文本 */
+  #define HMI_CTRL_MEAS_PRESSURE     111u    /* measuring 页 袖带压，mmHg */
+  #define HMI_CTRL_MEAS_ELAPSED      112u    /* measuring 页 已用时间 "已用时 MM:SS" */
+  #define HMI_CTRL_RESULT_SYS        110u    /* result 页 收缩压，mmHg */
+  #define HMI_CTRL_RESULT_DIA        111u    /* result 页 舒张压，mmHg */
+  #define HMI_CTRL_RESULT_PR         112u    /* result 页 脉率，bpm */
+  #define HMI_CTRL_NOTICE_ERRCODE    110u    /* notice 页 错误码 "En" */
+  #define HMI_CTRL_NOTICE_TITLE      111u    /* notice 页 标题 */
+  #define HMI_CTRL_NOTICE_LINE1      112u    /* notice 页 说明第一行 */
+  #define HMI_CTRL_NOTICE_LINE2      113u    /* notice 页 说明第二行（固定置空） */
+  #define HMI_CTRL_NOTICE_VALIDITY   114u    /* notice 页 本次结果有效性文案 */
+  #define HMI_CTRL_STOP_STATUS       110u    /* stopping 页 状态文本 */
+  #define HMI_CTRL_STOP_PRESSURE     111u    /* stopping 页 袖带压，mmHg */
+  #define HMI_CTRL_STOP_DETAIL       112u    /* stopping 页 说明文本 */
+  #define HMI_CTRL_HIST_PAGE_INDEX   140u    /* history 页 页码 "n/m" */
+  #define HMI_CTRL_HIST_ROW0         110u    /* history 页 首行起始控件号 */
+  #define HMI_CTRL_HIST_COLS         6u      /* history 页 每行控件数(行间步长)：号/时间/SYS/DIA/PR/状态 */
 
-#define ST_TXT_CONTEXT_WAIT    "\xC9\xE8\xB1\xB8\xC1\xAC\xBD\xD3\xD6\xD0"        
-        #define ST_TXT_CONTEXT_IDLE    "\xCE\xB4\xB9\xD8\xC1\xAA\xBB\xBC\xD5\xDF"        
-        #define ST_TXT_CONTEXT_MEAS    "\xD5\xFD\xD4\xDA\xB2\xE2\xC1\xBF"                
-                #define ST_TXT_CONTEXT_STOP    "\xD5\xFD\xD4\xDA\xCD\xA3\xD6\xB9"                
-                #define ST_TXT_CONTEXT_DONE    "\xB2\xE2\xC1\xBF\xCD\xEA\xB3\xC9"                
-                #define ST_TXT_FOOTER_WAIT     "\xB5\xC8\xB4\xFD\xC9\xE8\xB1\xB8\xD7\xB4\xCC\xAC"
-#define ST_TXT_FOOTER_OK       "\xC9\xE8\xB1\xB8\xD2\xD1\xBE\xCD\xD0\xF7"        
-        #define ST_TXT_FOOTER_MEAS     "\xC6\xF8\xD1\xB9\xB2\xE2\xC1\xBF\xD6\xD0"        
-        #define ST_TXT_FOOTER_STOP     "\xD5\xFD\xD4\xDA\xCD\xA3\xD6\xB9\xB2\xD9\xD7\xF7"
-#define ST_TXT_TIP_WAIT        "\xB5\xC8\xB4\xFD\xC9\xE8\xB1\xB8\xD7\xB4\xCC\xAC"
-#define ST_TXT_TIP_OK          "\xC9\xE8\xB1\xB8\xBE\xCD\xD0\xF7\xA3\xAC\xBF\xC9\xBF\xAA\xCA\xBC\xB2\xE2\xC1\xBF" 
- #define ST_TXT_TIP_MEAS        "\xD5\xFD\xD4\xDA\xB2\xE2\xC1\xBF\xA3\xAC\xC7\xEB\xB1\xA3\xB3\xD6\xB0\xB2\xBE\xB2" 
- #define ST_TXT_TIP_STOP        "\xD5\xFD\xD4\xDA\xCD\xA3\xD6\xB9\xA3\xAC\xC7\xEB\xC9\xD4\xB5\xC8" 
- #define ST_TXT_TIP_DETAIL_MEAS "\xD2\xD1\xD3\xC3\xCA\xB1\xCB\xE6\xD6\xD0\xB9\xE6\xD7\xD4\xB6\xAF\xCD\xAC\xB2\xBD\xA3\xAC\xC7\xEB\xB2\xBB\xD2\xAA\xB6\xAF\xCA\xD6\xB1\xDB" 
- #define ST_TXT_TIP_DETAIL_STOP "\xC6\xF8\xB7\xA7\xD5\xFD\xD4\xDA\xB7\xC5\xC6\xF8\xA3\xAC\xC7\xEB\xC9\xD4\xB5\xC8"                                                  
-#define HMI_BTN_IDLE_START      10u
-#define HMI_BTN_IDLE_HISTORY    11u
-#define HMI_BTN_IDLE_SETTINGS   12u
-#define HMI_BTN_MEAS_STOP       10u
-#define HMI_BTN_RESULT_REMEAS   10u
-#define HMI_BTN_RESULT_HISTORY  11u
-#define HMI_BTN_RESULT_NEWPAT   12u
-#define HMI_BTN_NOTICE_RETRY    10u
-#define HMI_BTN_NOTICE_BACK     11u
-#define HMI_BTN_HIST_PREV       10u
-#define HMI_BTN_HIST_NEXT       11u
-#define HMI_BTN_HIST_BACK       12u
-#define HMI_BTN_STOPPING_STOP   10u
+#define ST_TXT_CONTEXT_WAIT    "\xC9\xE8\xB1\xB8\xC1\xAC\xBD\xD3\xD6\xD0"        /* 设备连接中 */
+        #define ST_TXT_CONTEXT_IDLE    "\xCE\xB4\xB9\xD8\xC1\xAA\xBB\xBC\xD5\xDF"        /* 未关联患者 */
+        #define ST_TXT_CONTEXT_MEAS    "\xD5\xFD\xD4\xDA\xB2\xE2\xC1\xBF"                /* 正在测量 */
+                #define ST_TXT_CONTEXT_STOP    "\xD5\xFD\xD4\xDA\xCD\xA3\xD6\xB9"                /* 正在停止 */
+                #define ST_TXT_CONTEXT_DONE    "\xB2\xE2\xC1\xBF\xCD\xEA\xB3\xC9"                /* 测量完成 */
+                #define ST_TXT_FOOTER_WAIT     "\xB5\xC8\xB4\xFD\xC9\xE8\xB1\xB8\xD7\xB4\xCC\xAC"  /* 等待设备状态 */
+#define ST_TXT_FOOTER_OK       "\xC9\xE8\xB1\xB8\xD2\xD1\xBE\xCD\xD0\xF7"        /* 设备已就绪 */
+        #define ST_TXT_FOOTER_MEAS     "\xC6\xF8\xD1\xB9\xB2\xE2\xC1\xBF\xD6\xD0"        /* 气压测量中 */
+        #define ST_TXT_FOOTER_STOP     "\xD5\xFD\xD4\xDA\xCD\xA3\xD6\xB9\xB2\xD9\xD7\xF7"  /* 正在停止操作 */
+#define ST_TXT_TIP_WAIT        "\xB5\xC8\xB4\xFD\xC9\xE8\xB1\xB8\xD7\xB4\xCC\xAC"  /* 等待设备状态 */
+#define ST_TXT_TIP_OK          "\xC9\xE8\xB1\xB8\xBE\xCD\xD0\xF7\xA3\xAC\xBF\xC9\xBF\xAA\xCA\xBC\xB2\xE2\xC1\xBF"  /* 设备就绪，可开始测量 */
+ #define ST_TXT_TIP_MEAS        "\xD5\xFD\xD4\xDA\xB2\xE2\xC1\xBF\xA3\xAC\xC7\xEB\xB1\xA3\xB3\xD6\xB0\xB2\xBE\xB2"  /* 正在测量，请保持安静 */
+ #define ST_TXT_TIP_STOP        "\xD5\xFD\xD4\xDA\xCD\xA3\xD6\xB9\xA3\xAC\xC7\xEB\xC9\xD4\xB5\xC8"  /* 正在停止，请稍等 */
+ #define ST_TXT_TIP_DETAIL_MEAS "\xD2\xD1\xD3\xC3\xCA\xB1\xCB\xE6\xD6\xD0\xB9\xE6\xD7\xD4\xB6\xAF\xCD\xAC\xB2\xBD\xA3\xAC\xC7\xEB\xB2\xBB\xD2\xAA\xB6\xAF\xCA\xD6\xB1\xDB"  /* 已用时随中止规自动同步，请不要动手臂 */
+ #define ST_TXT_TIP_DETAIL_STOP "\xC6\xF8\xB7\xA7\xD5\xFD\xD4\xDA\xB7\xC5\xC6\xF8\xA3\xAC\xC7\xEB\xC9\xD4\xB5\xC8"  /* 气阀正在放气，请稍等 */
+#define HMI_BTN_IDLE_START      10u    /* idle 页 开始测量 */
+#define HMI_BTN_IDLE_HISTORY    11u    /* idle 页 历史 */
+#define HMI_BTN_IDLE_SETTINGS   12u    /* idle 页 设置 */
+#define HMI_BTN_MEAS_STOP       10u    /* measuring 页 停止 */
+#define HMI_BTN_RESULT_REMEAS   10u    /* result 页 重测 */
+#define HMI_BTN_RESULT_HISTORY  11u    /* result 页 历史 */
+#define HMI_BTN_RESULT_NEWPAT   12u    /* result 页 新患者 */
+#define HMI_BTN_NOTICE_RETRY    10u    /* notice 页 重试 */
+#define HMI_BTN_NOTICE_BACK     11u    /* notice 页 返回 */
+#define HMI_BTN_HIST_PREV       10u    /* history 页 上一页 */
+#define HMI_BTN_HIST_NEXT       11u    /* history 页 下一页 */
+#define HMI_BTN_HIST_BACK       12u    /* history 页 返回 */
+#define HMI_BTN_STOPPING_STOP   10u    /* stopping 页 停止 */
 
-#define HMI_BTN_SET_TIME        12u   
-   #define HMI_CTRL_SETTINGS_TIME  111u  
-  #define HMI_CTRL_SETTINGS_BRIGHT 110u 
- #define HMI_BTN_BRIGHT_MINUS    10u   
-   #define HMI_BTN_BRIGHT_PLUS     11u   
-   #define BRIGHT_MIN_PERCENT      20u   
-   #define BRIGHT_MAX_PERCENT      100u  
-  #define BRIGHT_STEP             20u   
-   #define BRIGHT_DEFAULT_PERCENT  100u  
-  #define HMI_CTRL_TIME_YEAR      110u
-#define HMI_CTRL_TIME_MONTH     111u
-#define HMI_CTRL_TIME_DAY       112u
-#define HMI_CTRL_TIME_HOUR      113u
-#define HMI_CTRL_TIME_MINUTE    114u
-#define HMI_CTRL_TIME_EDITFIELD 120u  
-  #define HMI_CTRL_TIME_EDITHELP  121u  
-  #define HMI_BTN_TIME_FIELD0     10u   
-   #define HMI_BTN_TIME_ADD        15u
-#define HMI_BTN_TIME_SUB        16u
-#define HMI_BTN_TIME_CANCEL     17u
-#define HMI_BTN_TIME_SAVE       18u
+#define HMI_BTN_SET_TIME        12u     /* settings 页 进入时间设置 */
+   #define HMI_CTRL_SETTINGS_TIME  111u    /* settings 页 时间显示控件 */
+  #define HMI_CTRL_SETTINGS_BRIGHT 110u   /* settings 页 亮度显示控件 */
+ #define HMI_BTN_BRIGHT_MINUS    10u     /* settings 页 亮度 - */
+   #define HMI_BTN_BRIGHT_PLUS     11u     /* settings 页 亮度 + */
+   #define BRIGHT_MIN_PERCENT      20u     /* 亮度下限，% */
+   #define BRIGHT_MAX_PERCENT      100u    /* 亮度上限，% */
+  #define BRIGHT_STEP             20u     /* 亮度单步步长，% */
+   #define BRIGHT_DEFAULT_PERCENT  100u    /* 亮度默认值，% */
+  #define HMI_CTRL_TIME_YEAR      110u    /* time 页 年 */
+#define HMI_CTRL_TIME_MONTH     111u    /* time 页 月 */
+#define HMI_CTRL_TIME_DAY       112u    /* time 页 日 */
+#define HMI_CTRL_TIME_HOUR      113u    /* time 页 时 */
+#define HMI_CTRL_TIME_MINUTE    114u    /* time 页 分 */
+#define HMI_CTRL_TIME_EDITFIELD 120u    /* time 页 当前编辑字段指示 */
+  #define HMI_CTRL_TIME_EDITHELP  121u    /* time 页 操作提示 */
+  #define HMI_BTN_TIME_FIELD0     10u     /* time 页 字段按钮起点，10~14 依次为 年/月/日/时/分 */
+   #define HMI_BTN_TIME_ADD        15u     /* time 页 + */
+#define HMI_BTN_TIME_SUB        16u     /* time 页 - */
+#define HMI_BTN_TIME_CANCEL     17u     /* time 页 取消 */
+#define HMI_BTN_TIME_SAVE       18u     /* time 页 保存 */
 
-#define HIST_CAP 100u
+#define HIST_CAP 100u                       /* 历史环形缓冲容量，条 */
 
-uint32_t get_tick(void) { return g_tick; }
+uint32_t get_tick(void) { return g_tick; }   /* 返回 SysTick 毫秒计数 */
 
-static void on_bp_frame(uint8_t cmd, const uint8_t *data, uint8_t len);
-static void bp_send_cmd(uint8_t cmd, const uint8_t *data, uint8_t data_len);
-static void bp_start_measure(void);  static void dbg_hex2(uint8_t b);   
-static volatile uint32_t s_rx2_cnt = 0;
-static volatile uint32_t s_rx3_cnt = 0;
+static void on_bp_frame(uint8_t cmd, const uint8_t *data, uint8_t len);        /* 传感器整帧回调 */
+static void bp_send_cmd(uint8_t cmd, const uint8_t *data, uint8_t data_len);   /* 向传感器发命令 */
+static void bp_start_measure(void);  static void dbg_hex2(uint8_t b);          /* 开始测量 / 调试口输出 1 字节十六进制 */
+static volatile uint32_t s_rx2_cnt = 0;   /* 血压屏接收字节计数（诊断用） */
+static volatile uint32_t s_rx3_cnt = 0;   /* 传感器接收字节计数（诊断用） */
 
-#define RXQ_SIZE 256
-static volatile uint8_t  s_q3[RXQ_SIZE];
+#define RXQ_SIZE 256                                  /* 环形缓冲容量，字节 */
+static volatile uint8_t  s_q3[RXQ_SIZE];              /* 传感器(UART5)接收环形缓冲 */
 static volatile uint16_t s_q3_head = 0, s_q3_tail = 0;
-static volatile uint8_t  s_q2[RXQ_SIZE];
+static volatile uint8_t  s_q2[RXQ_SIZE];              /* 血压屏(USART3)接收环形缓冲 */
 static volatile uint16_t s_q2_head = 0, s_q2_tail = 0;
 
 #if RX_USE_DMA_IDLE
@@ -168,74 +164,77 @@ static uint8_t s_dma0_buf[DMA_RX_BUF_SIZE];   /* 血压传感器 UART5_RX (DMA1_
 #endif
 
 
-typedef enum {
+typedef enum {                     /* 测量状态机：空闲 / 测量中 / 停止中 */
     ST_IDLE = 0,          ST_MEASURING,         ST_STOPPING       } bp_state_t;
-static bp_state_t s_state = ST_IDLE;
+static bp_state_t s_state = ST_IDLE;          /* 当前状态 */
 
-static uint32_t s_rtc_base_tick = 0;   static uint32_t s_rtc_base_sec  = 0;   static uint16_t s_year = 2026;
-static uint8_t  s_month = 1, s_day = 1;
-static uint32_t s_sec_of_day = 0;      /* 0~86399 */
+static uint32_t s_rtc_base_tick = 0;   /* 软 RTC 基准 tick(ms) */   static uint32_t s_rtc_base_sec  = 0;   /* 基准时刻的当日秒 */   static uint16_t s_year = 2026;        /* 软 RTC 年 */
+static uint8_t  s_month = 1, s_day = 1;                /* 软 RTC 月(1~12) / 日(1~31) */
+static uint32_t s_sec_of_day = 0;      /* 软 RTC 当日已过秒数，0~86399 */
 
-static uint32_t s_meas_start_tick = 0;
-static uint16_t s_elapsed_sec = 0;
+static uint32_t s_meas_start_tick = 0;   /* 本次测量起始 tick(ms) */
+static uint16_t s_elapsed_sec = 0;       /* 本次测量已用秒数 */
 
+/* 最近一次结果（idle 页“上次结果”与结果页的数据源） */
 typedef struct {
-    uint8_t  valid;            uint16_t sys, dia;
-    uint8_t  pr;
-    uint8_t  irregular;
-    uint16_t year; uint8_t mon, day, hour, min;   } bp_last_t;
+    uint8_t  valid;            uint16_t sys, dia;      /* valid:1=有效 0=无结果；sys/dia:收缩/舒张压 mmHg */
+    uint8_t  pr;                                       /* 脉率 bpm */
+    uint8_t  irregular;                                /* 心律不齐标记：0=齐 1=不齐 */
+    uint16_t year; uint8_t mon, day, hour, min;   } bp_last_t;   /* 测量时刻 年/月/日/时/分 */
 static bp_last_t s_last;
 
+/* 历史记录（环形缓冲元素，容量 HIST_CAP） */
 typedef struct {
-    uint8_t  valid;            uint16_t sys, dia;
-    uint8_t  pr;
-    uint16_t year; uint8_t mon, day, hour, min;
-    uint8_t  state;        } hist_rec_t;
+    uint8_t  valid;            uint16_t sys, dia;      /* valid:1=有效 0=无效；sys/dia:mmHg */
+    uint8_t  pr;                                       /* 脉率 bpm */
+    uint16_t year; uint8_t mon, day, hour, min;        /* 记录时刻 年/月/日/时/分 */
+    uint8_t  state;        } hist_rec_t;               /* 0=正常(齐) 1=不齐 2=已取消 3=错误 */
 static hist_rec_t s_hist[HIST_CAP];
-static uint16_t s_hist_count = 0;   static uint16_t s_hist_head = 0;    static uint8_t  s_hist_page = 0;    
-static uint8_t  s_tedit_field = 0;  static uint16_t s_tedit_year = 2026;
-static uint8_t  s_tedit_mon = 1, s_tedit_day = 1, s_tedit_hour = 0, s_tedit_min = 0;
+static uint16_t s_hist_count = 0;   /* 已存记录数(≤HIST_CAP) */   static uint16_t s_hist_head = 0;   /* 下一个写入下标 */   static uint8_t  s_hist_page = 0;   /* 当前显示页(从0起) */
+static uint8_t  s_tedit_field = 0;  static uint16_t s_tedit_year = 2026;      /* 当前编辑字段(0~4=年/月/日/时/分) / 编辑年 */
+static uint8_t  s_tedit_mon = 1, s_tedit_day = 1, s_tedit_hour = 0, s_tedit_min = 0;   /* 编辑缓冲 月/日/时/分 */
 
-static uint8_t  s_bright_percent = BRIGHT_DEFAULT_PERCENT;
+static uint8_t  s_bright_percent = BRIGHT_DEFAULT_PERCENT;   /* 当前背光亮度，20~100 % */
 
-static uint32_t s_stop_tick  = 0;    static uint8_t  s_stop_acked = 0;    
+static uint32_t s_stop_tick  = 0;   /* 停止请求时刻(ms) */   static uint8_t  s_stop_acked = 0;     /* 是否已收到 0xA1 停止应答 */
 
-/* 实时气压写屏节流（★第七节修复）：避免测量期高频气压帧堵死 9600 串口导致时钟卡顿跳变。
- * 纯时间闸门（见 on_bp_frame() 的 BP_CMD_START 分支）：只按固定间隔刷新，与压力变化率无关。 */
-static uint32_t s_press_send_tick = 0;     /* 上次写屏时刻 */
+/* 实时气压写屏节流：纯时间闸门，距上次写屏 ≥150ms 才刷新（详见 on_bp_frame 的 BP_CMD_START 分支）。
+ * 目的：限制写屏频率，避免高频气压帧堵死 9600 串口导致时钟卡顿跳变。 */
+static uint32_t s_press_send_tick = 0;     /* 上次气压写屏时刻(ms) */
 
-static void clock_tick_1s(void);
+static void clock_tick_1s(void);            /* 软 RTC 每秒推进 */
 static void clock_sync_rtc(void);       /* 用 EE 81 把软 RTC 写给血压屏的 RTC 控件 */
 static void hist_add(uint8_t valid, uint16_t sys, uint16_t dia, uint8_t pr,
                      uint8_t state, uint16_t yy, uint8_t mm, uint8_t dd,
-                     uint8_t hh, uint8_t mi);
-static void hist_show_page(void);
-static void hist_show_latest_to_result(void);
-static void stop_measure(void);
-static void result_show(void);
-static void notice_show(uint8_t err_code);
+                     uint8_t hh, uint8_t mi);                       /* 追加一条历史记录 */
+static void hist_show_page(void);                                  /* 按 s_hist_page 刷新历史页 */
+static void hist_show_latest_to_result(void);                      /* 把最新历史记录写到结果页 */
+static void stop_measure(void);                                    /* 停止测量 */
+static void result_show(void);                                     /* 刷新结果页 */
+static void notice_show(uint8_t err_code);                         /* 刷新通知/错误页 */
+/* 时间编辑 / 设置 / 亮度 / 公共状态条 的辅助函数（均在下方定义） */
 static void time_edit_begin(void);       static void time_edit_render(void);      static void time_edit_step(int8_t dir);  static void time_edit_commit(void);      static void settings_show_time(void);    static void bright_apply(void);          static void bright_show(void);           static void bright_step(int8_t dir);     static void status_refresh(void);        static void status_set(const char *ctx, const char *foot, const char *tip, const char *det); static void idle_refresh(void);          
-static void delay_ms(uint32_t ms)
+static void delay_ms(uint32_t ms)          /* 忙等延时(ms)，基于 g_tick；仅主循环可调用，不可用于中断 */
 {
     uint32_t t0 = g_tick;
     while (g_tick - t0 < ms) {}
 }
 
-static void uart_send_byte(USART_TypeDef *u, uint8_t b)
+static void uart_send_byte(USART_TypeDef *u, uint8_t b)   /* 阻塞发送 1 字节(等 TXE) */
 {
     while (USART_GetFlagStatus(u, USART_FLAG_TXE) == RESET);
     USART_SendData(u, b);
 }
-static void uart_send_buf(USART_TypeDef *u, const uint8_t *p, uint16_t n)
+static void uart_send_buf(USART_TypeDef *u, const uint8_t *p, uint16_t n)   /* 阻塞发送 n 字节 */
 {
     for (uint16_t i = 0; i < n; i++) uart_send_byte(u, p[i]);
 }
 
-static void dbg_str(const char *s)
+static void dbg_str(const char *s)          /* 调试口输出以 '\0' 结尾的字符串 */
 {
     uart_send_buf(DEBUG_UART, (const uint8_t *)s, (uint16_t)strlen(s));
 }
-static void dbg_u32(uint32_t v)
+static void dbg_u32(uint32_t v)             /* 调试口输出十进制无符号数 */
 {
     char t[12]; int i = 0;
     if (v == 0) t[i++] = '0';
@@ -243,6 +242,7 @@ static void dbg_u32(uint32_t v)
     while (i > 0) uart_send_byte(DEBUG_UART, (uint8_t)t[--i]);
 }
 
+/* 把 v 转成十进制写入 buf，返回位数；调用者需保证 buf 足够大。 */
 static uint8_t u32_dec(uint32_t v, char *buf)
 {
     char t[12]; uint8_t i = 0;
@@ -254,7 +254,7 @@ static uint8_t u32_dec(uint32_t v, char *buf)
     return n;
 }
 
-static void hmi_send_cb(const uint8_t *buf, uint16_t len)
+static void hmi_send_cb(const uint8_t *buf, uint16_t len)   /* 屏发送回调：固定走 USART3 */
 {
     /* 血压屏固定走 USART3（双屏并行后不再按编译宏屏蔽屏发送） */
     uart_send_buf(SCREEN_UART, buf, len);
@@ -270,9 +270,9 @@ static void screen_diag_on_idle(void)
 }
 
 #define SCR_BUF_SIZE 32
-static uint8_t  s_scr_buf[SCR_BUF_SIZE];
-static uint8_t  s_scr_len = 0;
-static uint8_t  s_scr_in_frame = 0;
+static uint8_t  s_scr_buf[SCR_BUF_SIZE];   /* 屏帧组装缓冲 */
+static uint8_t  s_scr_len = 0;             /* 当前已收字节数 */
+static uint8_t  s_scr_in_frame = 0;        /* 是否处于一帧之中 */
 
 /*
  * 屏帧解析 + 按钮分发：只处理大彩 B1 子指令。
@@ -293,8 +293,8 @@ static void hmi_rx_frame(const uint8_t *f, uint8_t len)
     if (len < 5) return;
     if (f[1] != 0xB1) return;                sub = f[2];
     if (sub == 0x01) {                           uint16_t scr = ((uint16_t)f[3] << 8) | f[4];
-        g_hmi_cur_screen = scr;   /* ★任务D：屏回应"查询当前页"，同步当前可见页（含屏自行切页的情况） */
-        hmi_fire_page_changed(scr);  /* ★切页→立即补刷时钟，避免新页时钟跳变/各页不同步 */
+        g_hmi_cur_screen = scr;   /* 屏应答“当前页”，同步当前可见页（含屏自行切页的情况） */
+        hmi_fire_page_changed(scr);  /* 触发切页通知（当前未注册回调） */
         dbg_str(">>> SCREEN GET screen=");
         dbg_u32(scr);
         dbg_str("\r\n");
@@ -318,8 +318,7 @@ static void hmi_rx_frame(const uint8_t *f, uint8_t len)
 
                 if (status != 1u) return;
 
-                /* 注：本工程现已改为"时钟广播到所有页"，任意页都保持当前时间，
-                 * 因此无需在这里为按键额外回读当前页；3s 周期轮询(app_loop)保留作兜底。 */
+                /* 只处理“按下”(status=1)事件；当前可见页由 app_loop 的 3s 周期回读同步。 */
 
                 if (scr == HMI_SCREEN_IDLE) {
             if (ctrl == HMI_BTN_IDLE_START) {
@@ -344,7 +343,7 @@ static void hmi_rx_frame(const uint8_t *f, uint8_t len)
                 bp_start_measure();                      } else if (ctrl == HMI_BTN_RESULT_HISTORY) {
                 s_hist_page = 0;
                 hist_show_page();
-                hist_show_latest_to_result();            /* ★结果页"历史"按钮：把最新历史数据显示到 SYS/DIA/PR */
+                hist_show_latest_to_result();            /* 结果页“历史”按钮：把最新历史数据显示到 SYS/DIA/PR */
             }
                     }
                 else if (scr == HMI_SCREEN_NOTICE) {
@@ -361,7 +360,7 @@ static void hmi_rx_frame(const uint8_t *f, uint8_t len)
             }
                     }
                 else if (scr == HMI_SCREEN_CONFIRM) {
-                        if (ctrl == 11u) {
+                        if (ctrl == 11u) {           /* confirm 页 控件11：清除上次结果 */
                                 s_last.valid = 0;
                 idle_refresh();                          status_refresh();                    }
         }
@@ -410,18 +409,18 @@ static void hmi_rx_feed(uint8_t b)
 }
 
 
-static uint8_t str_app(char *buf, uint8_t pos, const char *s)
+static uint8_t str_app(char *buf, uint8_t pos, const char *s)   /* 在 buf[pos] 起追加字符串，返回新位置 */
 {
     while (*s) buf[pos++] = *s++;
     return pos;
 }
-static uint8_t str_app2(char *buf, uint8_t pos, uint8_t v)
+static uint8_t str_app2(char *buf, uint8_t pos, uint8_t v)      /* 追加 2 位十进制(00~99)，返回新位置 */
 {
     buf[pos++] = (char)('0' + (v / 10) % 10);
     buf[pos++] = (char)('0' + v % 10);
     return pos;
 }
-static uint8_t str_app4(char *buf, uint8_t pos, uint16_t v)
+static uint8_t str_app4(char *buf, uint8_t pos, uint16_t v)     /* 追加 4 位十进制(0000~9999)，返回新位置 */
 {
     buf[pos++] = (char)('0' + (v / 1000) % 10);
     buf[pos++] = (char)('0' + (v / 100) % 10);
@@ -485,34 +484,13 @@ static void bp_day_step(uint16_t *Y, uint8_t *M, uint8_t *D, int delta)
     *Y = y; *M = m; *D = d;
 }
 
-/* ★ 血压屏时钟：屏内 RTC 控件（EE 81 驱动）—— 2026-10-12 同源改造 + 相位补偿
+/* 血压屏时钟：屏内 RTC 控件，由 EE 81(hmi_set_rtc) 设置，之后屏自行走时。
+ * 与血氧屏 HMI_SetRTCTime() 同指令、同字段顺序，同一时刻下发同一时间值，两屏时钟同源。
  *
- * 历史包袱与最终结论：
- *   ① 最初：每秒把 "YYYY-MM-DD HH:MM:SS" 文本背靠背写全部 10 页 = 340 字节
- *      ≈ 350ms 连续阻塞主循环（9600 上死等 TXE）→ 血氧 PPG 波形"一秒卡一次"。
- *   ② 改成每 100ms 写 1 页轮转 → 波形好了，但轮转周期 1000ms 与软 RTC 的
- *      1 秒节拍**锁相**，且写屏排在推进 RTC 之前 ⇒ 0 号页（主界面）恒定慢 1 秒。
- *   ③ 改成"整秒后立刻刷可见页 + 非可见页 300ms 慢轮转" → 可见页延迟 ≈0，
- *      但**文本控件天生**要求 MCU 每秒持续写、时钟永远跟着 MCU 的显示链路走，
- *      而血氧屏用的是屏内硬件 RTC，两条链路机制根本不同，残留 0~1s 相位差。
- *   ④ 同源改造：血压屏也改 **屏内 RTC 控件**（`type="rtc"`），用 `EE 81` 设置，
- *      与血氧屏 `HMI_SetRTCTime()` 同指令、同字段顺序、同一时刻下发同一时间值，
- *      两屏"值"完全同源。但实测血压屏仍**稳定**比血氧屏慢 1 秒。
- *
- * 【残留 1 秒的根因 = C 类相位差】
- *   两块屏的屏内 RTC 各有独立晶振；EE 81 只设置"整秒值"，并不重新对齐屏内的
- *   亚秒相位。每秒重发只是把整秒值对齐到 MCU，两屏"跳秒"的触发时刻仍由各自
- *   晶振相位决定，稳定相差最多 1 秒（本机实测恰好差 1 秒）。这是屏硬件自走机制的
- *   固有特性，MCU 侧除非做相位补偿否则无法根除。
- *
- * 【补偿办法：BP_RTC_OFFSET_SEC】
- *   把"写进血压屏的秒值"整体平移 n 秒，抵消这块屏的相位滞后（与血氧侧
- *   SPO2_RTC_OFFSET_SEC 完全对称）：
- *     屏比血氧屏 / MCU 慢 n 秒 -> 填 +n（让血压屏多走 n 秒，追上）
- *     屏比血氧屏 / MCU 快 n 秒 -> 填 -n
- *   只改写屏值，不影响 MCU 内部走时、监护时长、报警时间。
- *   默认 +1：抵消实测的"血压屏稳定慢 1 秒"。若烧录后血压屏反而快 1 秒，
- *   把它改成 -1 即可；两屏一致时填 0。 */
+ * BP_RTC_OFFSET_SEC：写进血压屏的秒值整体平移量，用于补偿两块屏独立晶振造成的相位差
+ * （EE 81 只设置整秒值，不重对齐屏内亚秒相位，两屏跳秒时刻可能稳定相差最多 1 秒）。
+ *   屏比血氧屏 / MCU 慢 n 秒 → 填 +n；快 n 秒 → 填 -n；两屏一致 → 填 0。
+ *   默认 +1，抵消实测“血压屏稳定慢 1 秒”；只改屏显示值，不影响 MCU 内部走时与报警时间。 */
 #ifndef BP_RTC_OFFSET_SEC
 #define BP_RTC_OFFSET_SEC  1
 #endif
@@ -534,14 +512,12 @@ static void clock_sync_rtc(void)
                 clock_weekday(y, m, d));
 }
 
-/* 屏"当前可见页"变化回调：**改造为 RTC 控件后已不需要**。
- * 原来时钟是各页独立的文本控件，切页必须补刷；现在所有页的 RTC 控件显示的是
- * 同一个屏内 RTC，切页天然一致，因此本回调连同 hmi_set_page_changed_cb() 注册一起删除。
- * （保留 hmi_fire_page_changed 接口本身，将来若需要"切页做别的事"可再注册。） */
+/* 注：切页补刷时钟的回调已随“屏内 RTC”改造删除——所有页的 RTC 控件显示的是同一个
+ * 屏内 RTC，切页天然一致，无需补刷。（hmi_fire_page_changed 接口保留备用。） */
 
-#define ST_PUBLIC_MASK  0x01u   
-   #define ST_TIP_MASK     0x02u   
-   #define ST_TIP_SKIP_PAGE HMI_SCREEN_RESULT   
+#define ST_PUBLIC_MASK  0x01u                       /* 公共状态条掩码（当前未引用） */
+   #define ST_TIP_MASK     0x02u                    /* 提示掩码（当前未引用） */
+   #define ST_TIP_SKIP_PAGE HMI_SCREEN_RESULT       /* TIP 控件跳过页：result 页的 TIP 由 result_show 单独写 */
 /*
  * 公共状态条写入：把 上下文/页脚/提示标题/提示详情 写到所有页对应控件(100~104)。
  * settings/maintenance/confirm 三页无这些控件故跳过；result 页的 TIP 单独由 result_show 写。
@@ -576,7 +552,7 @@ static void idle_refresh(void)
         hmi_write_text(HMI_SCREEN_IDLE, HMI_CTRL_IDLE_LAST_INFO, b);
     } else {
         hmi_write_text(HMI_SCREEN_IDLE, HMI_CTRL_IDLE_LAST_RESULT, "-- / --");
-        hmi_write_text(HMI_SCREEN_IDLE, HMI_CTRL_IDLE_LAST_INFO, "\xC9\xD0\xCE\xDE\xB2\xE2\xC1\xBF\xBD\xE1\xB9\xFB");
+        hmi_write_text(HMI_SCREEN_IDLE, HMI_CTRL_IDLE_LAST_INFO, "\xC9\xD0\xCE\xDE\xB2\xE2\xC1\xBF\xBD\xE1\xB9\xFB");   /* 尚无测量结果 */
     }
 }
 
@@ -604,7 +580,7 @@ static void status_refresh(void)
 }
 
 
-static uint8_t month_days(uint16_t y, uint8_t m)
+static uint8_t month_days(uint16_t y, uint8_t m)   /* 返回指定年月的天数（闰年 2 月为 29） */
 {
     static const uint8_t dim[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
     if (m == 2u) {
@@ -630,7 +606,7 @@ static void time_edit_begin(void)
     dbg_str(">>> TIME EDIT begin\r\n");
 }
 
-static void time_edit_render(void)
+static void time_edit_render(void)   /* 把编辑缓冲的年/月/日/时/分与当前字段名写到 time 页 */
 {
     char b[8];
     uint8_t k;
@@ -648,11 +624,13 @@ static void time_edit_render(void)
     hmi_write_text(HMI_SCREEN_TIME, HMI_CTRL_TIME_MINUTE, b);
 
     switch (s_tedit_field) {
-        case 0u:  field_name = "\xC4\xEA";       break;           case 1u:  field_name = "\xD4\xC2";       break;           case 2u:  field_name = "\xC8\xD5";       break;           case 3u:  field_name = "\xCA\xB1";       break;           default:  field_name = "\xB7\xD6";       break;       }
+        case 0u:  field_name = "\xC4\xEA";       break;           case 1u:  field_name = "\xD4\xC2";       break;           case 2u:  field_name = "\xC8\xD5";       break;           case 3u:  field_name = "\xCA\xB1";       break;           default:  field_name = "\xB7\xD6";       break;       }   /* 年/月/日/时/分 */
         hmi_write_text(HMI_SCREEN_TIME, HMI_CTRL_TIME_EDITFIELD, field_name);
+    /* 提示："选字段后按 +/-，保存后生效" */
     hmi_write_text(HMI_SCREEN_TIME, HMI_CTRL_TIME_EDITHELP,
                    "\xD1\xA1\xD7\xD6\xB6\xCE\xBA\xF3\xB0\xB4 +/-\xA3\xAC\xB1\xA3\xB4\xE6\xBA\xF3\xC9\xFA\xD0\xA7"); }
 
+/* 按 dir=+1/-1 调整当前编辑字段；日期字段按当月天数回绕，并保证日不超过当月天数。 */
 static void time_edit_step(int8_t dir)
 {
     switch (s_tedit_field) {
@@ -685,7 +663,7 @@ static void time_edit_step(int8_t dir)
     time_edit_render();
 }
 
-static void settings_show_time(void)
+static void settings_show_time(void)   /* 把软 RTC 以 "YYYY-MM-DD HH:MM:SS" 写到 settings 页时间控件 */
 {
     char b[20];
     uint8_t k = 0, hh, mm, sc;
@@ -702,14 +680,15 @@ static void settings_show_time(void)
     hmi_write_text(HMI_SCREEN_SETTINGS, HMI_CTRL_SETTINGS_TIME, b);
 }
 
+/* 亮度百分比(20~100) → 屏背光值(0~255)，为反相映射：100%→0，20%→204。 */
 #define HMI_BACKLIGHT_MAP(p)  (uint8_t)(255u - ((uint32_t)(p) * 255u / 100u))
 
-static void bright_apply(void)
+static void bright_apply(void)   /* 按 s_bright_percent 下发背光指令 */
 {
     hmi_set_backlight(HMI_BACKLIGHT_MAP(s_bright_percent));
 }
 
-static void bright_show(void)
+static void bright_show(void)    /* 把 s_bright_percent 以 "n%" 写到 settings 页亮度控件 */
 {
     char b[6];
     uint8_t k = 0;
@@ -753,7 +732,7 @@ static void time_edit_commit(void)
         s_sec_of_day = (uint32_t)s_tedit_hour * 3600u + (uint32_t)s_tedit_min * 60u;
     s_rtc_base_sec  = s_sec_of_day;
     s_rtc_base_tick = g_tick;
-    /* ★ 血氧侧软 RTC 必须一起改，否则两块屏从此各走各的（能差几小时）。
+    /* 血氧侧软 RTC 必须一起改，否则两块屏从此各走各的（能差几小时）；
      * 血压页改时间时秒置 0，与屏幕上的"年月日时分"语义一致。 */
     spo2_rtc_set(s_year, (uint8_t)s_month, (uint8_t)s_day,
                  s_tedit_hour, s_tedit_min, 0u);
@@ -763,6 +742,7 @@ static void time_edit_commit(void)
     dbg_str("\r\n");
 }
 
+/* 追加一条历史记录：写入 s_hist_head 处并前移，随后把显示页复位到第 0 页。 */
 static void hist_add(uint8_t valid, uint16_t sys, uint16_t dia, uint8_t pr,
                      uint8_t state, uint16_t yy, uint8_t mm, uint8_t dd,
                      uint8_t hh, uint8_t mi)
@@ -775,17 +755,17 @@ static void hist_add(uint8_t valid, uint16_t sys, uint16_t dia, uint8_t pr,
     if (s_hist_count < HIST_CAP) s_hist_count++;
     s_hist_page = 0;   }
 
-/* ===== 血压分级阈值与分级函数（步骤7）：结果页与历史页共用，保证两处判定一致 ===== */
-#define BP_SYS_LO    90u
-#define BP_SYS_HI    139u
-#define BP_SYS_H1    140u
-#define BP_SYS_H2    160u
-#define BP_DIA_LO    60u
-#define BP_DIA_HI    89u
-#define BP_DIA_H1    90u
-#define BP_DIA_H2    100u
-#define BP_PR_LO     60u
-#define BP_PR_HI     100u
+/* ===== 血压分级阈值与分级函数：结果页与历史页共用，保证两处判定一致 ===== */
+#define BP_SYS_LO    90u     /* 收缩压偏低上限 */
+#define BP_SYS_HI    139u    /* 收缩压正常上限 */
+#define BP_SYS_H1    140u    /* 收缩压偏高(1级)起点 */
+#define BP_SYS_H2    160u    /* 收缩压高血压(2级)起点 */
+#define BP_DIA_LO    60u     /* 舒张压偏低上限 */
+#define BP_DIA_HI    89u     /* 舒张压正常上限 */
+#define BP_DIA_H1    90u     /* 舒张压偏高(1级)起点 */
+#define BP_DIA_H2    100u    /* 舒张压高血压(2级)起点 */
+#define BP_PR_LO     60u     /* 脉率偏慢上限 */
+#define BP_PR_HI     100u    /* 脉率正常上限 */
 
 /* 血压分级级别：0=正常 1=偏低 2=偏高(1级) 3=高血压(2级)；取 SYS/DIA 较高档 */
 static uint8_t bp_level(uint16_t sys, uint16_t dia)
@@ -878,13 +858,13 @@ static void hist_show_page(void)
                 hmi_write_text(HMI_SCREEN_HISTORY, ctrl + 5u, st);
             } else {
                 hmi_write_text(HMI_SCREEN_HISTORY, ctrl + 5u,
-                    (r->state == 2u) ? "\xD2\xD1\xC8\xA1\xCF\xFB" : "\xB4\xED\xCE\xF3");
+                    (r->state == 2u) ? "\xD2\xD1\xC8\xA1\xCF\xFB" : "\xB4\xED\xCE\xF3");   /* 已取消 / 错误 */
             }
         }
     }
 
     if (s_hist_count == 0u) {
-        hmi_write_text(HMI_SCREEN_HISTORY, HMI_CTRL_HIST_PAGE_INDEX, "\xD4\xDD\xCE\xDE\xBC\xC7\xC2\xBC");
+        hmi_write_text(HMI_SCREEN_HISTORY, HMI_CTRL_HIST_PAGE_INDEX, "\xD4\xDD\xCE\xDE\xBC\xC7\xC2\xBC");   /* 暂无记录 */
     } else {
         uint8_t k = 0;
         k = u32_dec((uint32_t)(s_hist_page + 1u), b); b[k++] = '/';
@@ -922,7 +902,7 @@ static void hist_show_latest_to_result(void)
 }
 
 /*
- * 血压分级（步骤7）：取 收缩压/舒张压 中较高的一级作为总分级，返回 GBK 提示串。
+ * 血压分级：取 收缩压/舒张压 中较高的一级作为总分级，返回 GBK 提示串。
  * 偏低(<90/<60) / 正常 / 偏高1级(140~/90~) / 高血压2级(≥160/≥100)。
  */
 static const char *bp_classify(uint16_t sys, uint16_t dia)
@@ -935,15 +915,16 @@ static const char *bp_classify(uint16_t sys, uint16_t dia)
     }
 }
 
+/* 脉率提示串：>100 偏快 / <60 偏慢 / 其余返回空串（仅提示，不计入血压分级）。 */
 static const char *bp_pr_note(uint8_t pr)
 {
-    if (pr > BP_PR_HI) return "\xD0\xC4\xC2\xCA\xC6\xAB\xBF\xEC\xA3\xAC\xC7\xEB\xD7\xA2\xD2\xE2";     if (pr < BP_PR_LO) return "\xD0\xC4\xC2\xCA\xC6\xAB\xC2\xFD\xA3\xAC\xC7\xEB\xB9\xD8\xD7\xA2";     return "";
+    if (pr > BP_PR_HI) return "\xD0\xC4\xC2\xCA\xC6\xAB\xBF\xEC\xA3\xAC\xC7\xEB\xD7\xA2\xD2\xE2";     if (pr < BP_PR_LO) return "\xD0\xC4\xC2\xCA\xC6\xAB\xC2\xFD\xA3\xAC\xC7\xEB\xB9\xD8\xD7\xA2";     return "";   /* 心率偏快请注意 / 心率偏慢请关注 / 无 */
 }
 
 /*
  * 结果显示：把 s_last(SYS/DIA/PR) 写到结果页 110/111/112，并刷新 idle 页“上次结果”；
- * 步骤7：TIP_TITLE(103) 写血压分级(bp_classify)，TIP_DETAIL(104) 写
- *    “脉率提示 + 心率不齐提示”合并串（用 str_app 拼接，det[64] 缓冲）。
+ * TIP_TITLE(103) 写血压分级(bp_classify)，TIP_DETAIL(104) 写“脉率提示 + 心律不齐提示”
+ * 合并串（用 str_app 拼接，det[64] 缓冲）。
  */
 static void result_show(void)
 {
@@ -961,7 +942,7 @@ static void result_show(void)
     prn = bp_pr_note(s_last.pr);
     if (prn[0]) { k = str_app(det, k, prn); }
     if (s_last.irregular) {
-        if (k) { det[k++] = 0x3B; det[k++] = 0x20; }          k = str_app(det, k, "\xBD\xDA\xC2\xC9\xCC\xE1\xCA\xBE\xA3\xAC\xC7\xEB\xD3\xC9\xD2\xBD\xBB\xA4\xC8\xCB\xD4\xB1\xB8\xB4\xBA\xCB");
+        if (k) { det[k++] = 0x3B; det[k++] = 0x20; }          k = str_app(det, k, "\xBD\xDA\xC2\xC9\xCC\xE1\xCA\xBE\xA3\xAC\xC7\xEB\xD3\xC9\xD2\xBD\xBB\xA4\xC8\xCB\xD4\xB1\xB8\xB4\xBA\xCB");   /* 已有一条时先加 "; "，再接"节律提示，请由医护人员复核" */
     }
     det[k] = '\0';
     hmi_write_text(HMI_SCREEN_RESULT, HMI_CTRL_TIP_DETAIL, det);
@@ -969,17 +950,18 @@ static void result_show(void)
 
 /*
  * 异常/通知页：按错误码(0xAD 的 X，或 255=主动取消)写 错误码/标题/说明 到 notice 页。
+ *   0=未检测到有效脉搏 1=压力未建立 2=本次结果无效 3=超压保护 4=测量干扰过多 其他=本次测量已取消
  */
 static void notice_show(uint8_t err_code)
 {
     const char *title; const char *line1;
     switch (err_code) {
-    case 0: title = "\xCE\xB4\xBC\xEC\xB2\xE2\xB5\xBD\xD3\xD0\xD0\xA7\xC2\xF6\xB2\xAB"; line1 = "\xC7\xEB\xBC\xEC\xB2\xE9\xD0\xE4\xB4\xF8\xCE\xBB\xD6\xC3\xBA\xF3\xD6\xD8\xCA\xD4"; break;
-    case 1: title = "\xD1\xB9\xC1\xA6\xCE\xB4\xBD\xA8\xC1\xA2";       line1 = "\xC7\xEB\xBC\xEC\xB2\xE9\xD0\xE4\xB4\xF8\xC5\xE5\xB4\xF7\xBA\xCD\xC6\xF8\xB9\xDC\xC1\xAC\xBD\xD3"; break;
-    case 2: title = "\xB1\xBE\xB4\xCE\xBD\xE1\xB9\xFB\xCE\xDE\xD0\xA7";     line1 = "\xC7\xEB\xD6\xD8\xD0\xC2\xB2\xE2\xC1\xBF"; break;
-    case 3: title = "\xB3\xAC\xD1\xB9\xB1\xA3\xBB\xA4";         line1 = "\xC7\xEB\xCD\xA3\xD6\xB9\xCA\xB9\xD3\xC3\xB2\xA2\xBC\xEC\xB2\xE9\xC9\xE8\xB1\xB8"; break;
-    case 4: title = "\xB2\xE2\xC1\xBF\xB8\xC9\xC8\xC5\xB9\xFD\xB6\xE0";     line1 = "\xC7\xEB\xB1\xA3\xB3\xD6\xBE\xB2\xD6\xB9\xBA\xF3\xD6\xD8\xCA\xD4"; break;
-    default: title = "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xD1\xC8\xA1\xCF\xFB";  line1 = "\xCE\xB4\xBB\xF1\xB5\xC3\xD3\xD0\xD0\xA7\xBD\xE1\xB9\xFB"; break;
+    case 0: title = "\xCE\xB4\xBC\xEC\xB2\xE2\xB5\xBD\xD3\xD0\xD0\xA7\xC2\xF6\xB2\xAB"; line1 = "\xC7\xEB\xBC\xEC\xB2\xE9\xD0\xE4\xB4\xF8\xCE\xBB\xD6\xC3\xBA\xF3\xD6\xD8\xCA\xD4"; break;   /* 未检测到有效脉搏 / 请检查袖带位置后重试 */
+    case 1: title = "\xD1\xB9\xC1\xA6\xCE\xB4\xBD\xA8\xC1\xA2";       line1 = "\xC7\xEB\xBC\xEC\xB2\xE9\xD0\xE4\xB4\xF8\xC5\xE5\xB4\xF7\xBA\xCD\xC6\xF8\xB9\xDC\xC1\xAC\xBD\xD3"; break;   /* 压力未建立 / 请检查袖带配戴和气管连接 */
+    case 2: title = "\xB1\xBE\xB4\xCE\xBD\xE1\xB9\xFB\xCE\xDE\xD0\xA7";     line1 = "\xC7\xEB\xD6\xD8\xD0\xC2\xB2\xE2\xC1\xBF"; break;   /* 本次结果无效 / 请重新测量 */
+    case 3: title = "\xB3\xAC\xD1\xB9\xB1\xA3\xBB\xA4";         line1 = "\xC7\xEB\xCD\xA3\xD6\xB9\xCA\xB9\xD3\xC3\xB2\xA2\xBC\xEC\xB2\xE9\xC9\xE8\xB1\xB8"; break;   /* 超压保护 / 请停止使用并检查设备 */
+    case 4: title = "\xB2\xE2\xC1\xBF\xB8\xC9\xC8\xC5\xB9\xFD\xB6\xE0";     line1 = "\xC7\xEB\xB1\xA3\xB3\xD6\xBE\xB2\xD6\xB9\xBA\xF3\xD6\xD8\xCA\xD4"; break;   /* 测量干扰过多 / 请保持静止后重试 */
+    default: title = "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xD1\xC8\xA1\xCF\xFB";  line1 = "\xCE\xB4\xBB\xF1\xB5\xC3\xD3\xD0\xD0\xA7\xBD\xE1\xB9\xFB"; break;   /* 本次测量已取消 / 未获得有效结果 */
     }
     { char t[8]; uint8_t k = 0;
       k = str_app(t, k, "E"); k = str_app2(t, k, err_code); t[k] = '\0';
@@ -988,7 +970,7 @@ static void notice_show(uint8_t err_code)
     hmi_write_text(HMI_SCREEN_NOTICE, HMI_CTRL_NOTICE_LINE1, line1);
     hmi_write_text(HMI_SCREEN_NOTICE, HMI_CTRL_NOTICE_LINE2, "");
     hmi_write_text(HMI_SCREEN_NOTICE, HMI_CTRL_NOTICE_VALIDITY,
-                   (err_code == 255u) ? "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xD1\xC8\xA1\xCF\xFB" : "\xB1\xBE\xB4\xCE\xCE\xB4\xBB\xF1\xB5\xC3\xD3\xD0\xD0\xA7\xBD\xE1\xB9\xFB");
+                   (err_code == 255u) ? "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xD1\xC8\xA1\xCF\xFB" : "\xB1\xBE\xB4\xCE\xCE\xB4\xBB\xF1\xB5\xC3\xD3\xD0\xD0\xA7\xBD\xE1\xB9\xFB");   /* 本次测量已取消 / 本次未获得有效结果 */
 }
 
 /*
@@ -1000,12 +982,12 @@ static void stop_measure(void)
 {
     bp_send_cmd(BP_CMD_STOP, 0, 0);           s_state = ST_STOPPING;
     s_stop_tick = g_tick;                     s_stop_acked = 0;
-        notice_show(255u);                            hmi_write_text(HMI_SCREEN_STOPPING, HMI_CTRL_STOP_STATUS, "\xD5\xFD\xD4\xDA\xCD\xA3\xD6\xB9");
-    hmi_write_text(HMI_SCREEN_STOPPING, HMI_CTRL_STOP_DETAIL, "\xD5\xFD\xD4\xDA\xC8\xB7\xC8\xCF\xCD\xA3\xD6\xB9\xD7\xB4\xCC\xAC");
+        notice_show(255u);                            hmi_write_text(HMI_SCREEN_STOPPING, HMI_CTRL_STOP_STATUS, "\xD5\xFD\xD4\xDA\xCD\xA3\xD6\xB9");   /* 正在停止 */
+    hmi_write_text(HMI_SCREEN_STOPPING, HMI_CTRL_STOP_DETAIL, "\xD5\xFD\xD4\xDA\xC8\xB7\xC8\xCF\xCD\xA3\xD6\xB9\xD7\xB4\xCC\xAC");   /* 正在确认停止状态 */
     status_refresh();                         hmi_change_page(HMI_SCREEN_NOTICE);       dbg_str("[BP] STOP requested (0xA1) -> notice page\r\n");
 }
 
-static void uart_gpio_init(void){
+static void uart_gpio_init(void){   /* 配置 BP 子系统两路串口的复用引脚 */
     GPIO_InitTypeDef g;
     /* 本文件只负责 BP 子系统的两路：
      *   血压屏   USART3(PB10/PB11)  —— 经 SP3232 通道2 → COM_G(RS232)
@@ -1030,7 +1012,7 @@ static void uart_gpio_init(void){
     g.GPIO_Pin = GPIO_Pin_2;                GPIO_Init(GPIOD, &g);
 }
 
-static void uart_periph_init(void)
+static void uart_periph_init(void)   /* 初始化 USART3(血压屏 9600) 与 UART5(血压传感器 115200) */
 {
     USART_InitTypeDef u;
     u.USART_WordLength = USART_WordLength_8b;
@@ -1054,7 +1036,7 @@ static void uart_periph_init(void)
     USART_ITConfig(UART5,  USART_IT_RXNE, ENABLE);
 }
 
-static void nvic_init(void)
+static void nvic_init(void)   /* 使能 BP 两路串口中断并设优先级 */
 {
     NVIC_InitTypeDef n;
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
@@ -1120,19 +1102,17 @@ void app_init(void)
 #endif
     uart_periph_init();
     hmi_init(hmi_send_cb);
-    /* 注：原来这里注册 hmi_set_page_changed_cb(clock_on_screen_changed) 做"切页补刷时钟"。
-     * 血压屏时钟已改为屏内 RTC 控件（EE 81 驱动），所有页共用同一个屏内 RTC，
-     * 切页天然一致，该回调与注册一并删除（见 clock_sync_rtc 注释）。 */
+    /* 注：血压屏时钟已改为屏内 RTC 控件（EE 81 驱动），所有页共用同一个屏内 RTC，
+     * 切页天然一致，无需注册 hmi_set_page_changed_cb 做“切页补刷时钟”。 */
     bp_sensor_init(on_bp_frame);
-    /* ★ 软 RTC 基准必须与血氧侧共用同一个 tick，否则血压屏时间会稳定慢 N 秒：
-     *   app_hmi_init()（血氧）在 main() 第 43 行调用、app_init()（血压）在第 51 行，
-     *   两者之间要刷几十帧屏指令（数百 ms ~ 秒级）。以前这里直接取 g_tick 做基准，
-     *   等于把血压软 RTC 的"0 秒"往后推了 Δ，两块屏就固定差 Δ 秒。
-     *   现在复用血氧侧先写好的 g_rtc_epoch_tick（见 merge_cfg.h），Δ 恒为 0。 */
+    /* 软 RTC 基准必须与血氧侧共用同一个 tick，否则两屏时间会固定差 Δ 秒：
+     * app_hmi_init()（血氧）比 app_init()（血压）先执行，两者之间要刷几十帧屏指令
+     * （数百 ms ~ 秒级）；以前这里直接取 g_tick 做基准，等于把血压软 RTC 的“0 秒”
+     * 往后推了 Δ。现改为复用血氧侧先写好的 g_rtc_epoch_tick，Δ 恒为 0。 */
     if (g_rtc_epoch_tick == 0u) g_rtc_epoch_tick = g_tick;   /* 兜底：血氧侧没先跑 */
     s_rtc_base_tick = g_rtc_epoch_tick;
     s_rtc_base_sec  = 0;
-    clock_sync_rtc();           /* ★ 开机立即把时间写给血压屏 RTC 控件（原来此处显示"时间未校准"） */
+    clock_sync_rtc();           /* 开机立即把时间写给血压屏 RTC 控件 */
 
     dbg_str("BP APP START\r\n");
     bright_apply();              
@@ -1178,27 +1158,21 @@ void app_loop(void)
         dbg_str("s] alive\r\n");
     }
 
-    /* 回读屏当前页(B1 01)，让 g_hmi_cur_screen 与屏实际显示的页保持一致
-     * （尤其屏用"切页型"按钮自行跳页时，MCU 无法预知）。
-     *
-     * ★ 时钟改造为屏内 RTC 后，本回读已**不再服务于时钟**（所有页共用同一个
-     * 屏内 RTC，切页天然一致），改回原来的 3 秒周期只为把链路占用降到最低；
-     * g_hmi_cur_screen 现在仅作状态记录/诊断用，将来若有"按页做不同事"的需求可直接读它。 */
+    /* 周期回读屏当前页(B1 01)，让 g_hmi_cur_screen 与屏实际显示的页保持一致
+     * （屏用“切页型”按钮自行跳页时，MCU 无法预知）；3 秒周期，仅作状态记录/诊断用。 */
     if (g_tick - s_screen_poll_tick >= 3000u)
     {
         s_screen_poll_tick = g_tick;
         hmi_get_screen();
     }
 
-    /* ★ 整秒：先推进软 RTC，再立刻用 EE 81 把新时间写给血压屏的 RTC 控件。
+    /* 整秒：先推进软 RTC，再立刻用 EE 81 把新时间写给血压屏的 RTC 控件。
      *
-     * 一帧只有 15 字节 ≈ 15.6ms @9600（改造前写文本一帧 34 字节 ≈ 35ms，
-     * 且原来每秒要写 10 页 / 或轮转 4.3 帧）⇒ 9600 链路占用降到约 1.6%，
-     * 血氧 PPG 波形完全不受影响，也不再需要任何分页轮转 / 可见页补刷逻辑。
-     *
-     * 顺序必须"先算时间、再写屏"：反过来的话，屏拿到的会是上一秒。
-     * 与血氧屏 `task_clock()` 同一拍（main() 里 task_clock() 紧邻 app_loop()），
-     * 两屏在同一时刻收到同一时间值 ⇒ 两屏时钟完全同源。 */
+     * 一帧约 15 字节 ≈ 15.6ms @9600，9600 链路占用约 1.6%，血氧 PPG 波形不受影响，
+     * 无需任何分页轮转 / 可见页补刷逻辑。
+     * 顺序必须“先算时间、再写屏”，否则屏拿到的会是上一秒；
+     * 与血氧屏 task_clock() 同一拍（main() 里 task_clock() 紧邻 app_loop()），
+     * 两屏在同一时刻收到同一时间值 ⇒ 时钟同源。 */
     if (g_tick - sec_last >= 1000) 
 	{
         sec_last = g_tick;
@@ -1211,30 +1185,31 @@ void app_loop(void)
             s_elapsed_sec = (uint16_t)((g_tick - s_meas_start_tick) / 1000u);
             mm = (uint8_t)(s_elapsed_sec / 60u);
             ss = (uint8_t)(s_elapsed_sec % 60u);
-            k = str_app(b, k, "\xD2\xD1\xD3\xC3\xCA\xB1 ");
+            k = str_app(b, k, "\xD2\xD1\xD3\xC3\xCA\xB1 ");   /* 已用时 */
             k = str_app2(b, k, mm); b[k++] = ':';
             k = str_app2(b, k, ss); b[k] = '\0';
             hmi_write_text(HMI_SCREEN_MEASURING, HMI_CTRL_MEAS_ELAPSED, b);
         }
     }
 
+    /* 停止超时兜底：发 0xA1 后 1.5s 内仍未收到应答，强制回 IDLE 并记一条“已取消”。 */
     if (s_state == ST_STOPPING && !s_stop_acked && (g_tick - s_stop_tick >= 1500u)) 
 	{
         s_stop_acked = 1;
-        hmi_write_text(HMI_SCREEN_STOPPING, HMI_CTRL_STOP_STATUS, "\xD2\xD1\xCD\xA3\xD6\xB9");
-        hmi_write_text(HMI_SCREEN_STOPPING, HMI_CTRL_STOP_DETAIL, "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xD1\xC8\xA1\xCF\xFB");
+        hmi_write_text(HMI_SCREEN_STOPPING, HMI_CTRL_STOP_STATUS, "\xD2\xD1\xCD\xA3\xD6\xB9");   /* 已停止 */
+        hmi_write_text(HMI_SCREEN_STOPPING, HMI_CTRL_STOP_DETAIL, "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xD1\xC8\xA1\xCF\xFB");   /* 本次测量已取消 */
         hist_add(0u, 0, 0, 0, 2u,
                  s_year, s_month, s_day,
                  (uint8_t)(s_sec_of_day / 3600u),
                  (uint8_t)((s_sec_of_day / 60u) % 60u));
         s_state = ST_IDLE;
-        status_set(ST_TXT_CONTEXT_IDLE, ST_TXT_FOOTER_WAIT, ST_TXT_TIP_WAIT, "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xD1\xC8\xA1\xCF\xFB\xA3\xAC\xBF\xC9\xD6\xD8\xD0\xC2\xB2\xE2\xC1\xBF");
+        status_set(ST_TXT_CONTEXT_IDLE, ST_TXT_FOOTER_WAIT, ST_TXT_TIP_WAIT, "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xD1\xC8\xA1\xCF\xFB\xA3\xAC\xBF\xC9\xD6\xD8\xD0\xC2\xB2\xE2\xC1\xBF");   /* 本次测量已取消，可重新测量 */
         dbg_str("[BP] STOP timeout (no 0xA1 ack) -> force IDLE\r\n");
     }
 }
 
-static const char HEXD[] = "0123456789ABCDEF";
-static void dbg_hex2(uint8_t b)
+static const char HEXD[] = "0123456789ABCDEF";   /* 十六进制字符表 */
+static void dbg_hex2(uint8_t b)                  /* 调试口输出 1 字节的两位十六进制 */
 {
     uart_send_byte(DEBUG_UART, (uint8_t)HEXD[b >> 4]);
     uart_send_byte(DEBUG_UART, (uint8_t)HEXD[b & 0x0F]);
@@ -1242,7 +1217,7 @@ static void dbg_hex2(uint8_t b)
 
 /*
  * 传感器命令发送：把命令字+数据用 bp_make_cmd 组帧(FF C0 LEN CKSUM CMD DATA)，
- * 通过 USART3 发出。
+ * 通过 UART5(SENSOR_UART) 发给血压传感器。
  */
 static void bp_send_cmd(uint8_t cmd, const uint8_t *data, uint8_t data_len)
 {
@@ -1252,7 +1227,7 @@ static void bp_send_cmd(uint8_t cmd, const uint8_t *data, uint8_t data_len)
 }
 
 /*
- * 开始测量：发 唤醒(0xAA)→启动(0xA0) 给传感器，状态置 ST_MEASURING 并记录起始 tick；
+ * 开始测量：发 唤醒(0xAA)→启动(0xA0) 给传感器(中间延时 20ms)，状态置 ST_MEASURING 并记录起始 tick；
  * 屏切到 measuring 页初始化状态/压力/计时文本，再 status_refresh 刷新所有页公共状态条。
  */
 static void bp_start_measure(void)
@@ -1264,10 +1239,10 @@ static void bp_start_measure(void)
     s_meas_start_tick = g_tick;
     s_elapsed_sec = 0;
     s_stop_acked = 0;
-    s_press_send_tick = 0;          /* ★第七节：清除气压写屏闸门，首帧立即刷新 */
-    hmi_write_text(HMI_SCREEN_MEASURING, HMI_CTRL_MEAS_STATUS, "\xB2\xE2\xC1\xBF\xD6\xD0");
+    s_press_send_tick = 0;          /* 清除气压写屏闸门，首帧立即刷新 */
+    hmi_write_text(HMI_SCREEN_MEASURING, HMI_CTRL_MEAS_STATUS, "\xB2\xE2\xC1\xBF\xD6\xD0");   /* 测量中 */
     hmi_write_text(HMI_SCREEN_MEASURING, HMI_CTRL_MEAS_PRESSURE, "0");  /* 初值用 0 而非 "--"：若压力控件是数值变量类型，"--" 会被屏显示成 "？？" */
-    hmi_write_text(HMI_SCREEN_MEASURING, HMI_CTRL_MEAS_ELAPSED, "\xD2\xD1\xD3\xC3\xCA\xB1 00:00");
+    hmi_write_text(HMI_SCREEN_MEASURING, HMI_CTRL_MEAS_ELAPSED, "\xD2\xD1\xD3\xC3\xCA\xB1 00:00");   /* 已用时 00:00 */
     status_refresh();       dbg_str("[BP] measure started\r\n");
 }
 
@@ -1290,7 +1265,7 @@ static void on_bp_frame(uint8_t cmd, const uint8_t *data, uint8_t len)
 	case BP_CMD_RESULT: 
 		{                               
 		bp_result_t r;
-        if (len < 5u) break;        /* ★修复：DATA 不足 5 字节不解析，防读到旧缓冲得到错误血压 */
+        if (len < 5u) break;        /* DATA 不足 5 字节不解析，防读到旧缓冲得到错误血压 */
         bp_parse_result(data, &r);
         dbg_str(" RESULT SYS=");
         dbg_u32(r.systolic);
@@ -1327,15 +1302,15 @@ static void on_bp_frame(uint8_t cmd, const uint8_t *data, uint8_t len)
         if (s_state == ST_STOPPING && !s_stop_acked) 
 		{
             s_stop_acked = 1;
-            hmi_write_text(HMI_SCREEN_STOPPING, HMI_CTRL_STOP_STATUS, "\xD2\xD1\xCD\xA3\xD6\xB9");
+            hmi_write_text(HMI_SCREEN_STOPPING, HMI_CTRL_STOP_STATUS, "\xD2\xD1\xCD\xA3\xD6\xB9");   /* 已停止 */
             hmi_write_text(HMI_SCREEN_STOPPING, HMI_CTRL_STOP_PRESSURE, "0");  /* 同上：用 0 避免数值变量控件在停止页显示 "？？" */
-            hmi_write_text(HMI_SCREEN_STOPPING, HMI_CTRL_STOP_DETAIL, "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xD1\xC8\xA1\xCF\xFB");
+            hmi_write_text(HMI_SCREEN_STOPPING, HMI_CTRL_STOP_DETAIL, "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xD1\xC8\xA1\xCF\xFB");   /* 本次测量已取消 */
             hist_add(0u, 0, 0, 0, 2u,                                   s_year, s_month, s_day,
                      (uint8_t)(s_sec_of_day / 3600u),
                      (uint8_t)((s_sec_of_day / 60u) % 60u));
             s_state = ST_IDLE;
             notice_show(255u);                               
-			status_set(ST_TXT_CONTEXT_IDLE, ST_TXT_FOOTER_WAIT, ST_TXT_TIP_WAIT, "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xD1\xC8\xA1\xCF\xFB\xA3\xAC\xBF\xC9\xD6\xD8\xD0\xC2\xB2\xE2\xC1\xBF");
+			status_set(ST_TXT_CONTEXT_IDLE, ST_TXT_FOOTER_WAIT, ST_TXT_TIP_WAIT, "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xD1\xC8\xA1\xCF\xFB\xA3\xAC\xBF\xC9\xD6\xD8\xD0\xC2\xB2\xE2\xC1\xBF");   /* 本次测量已取消，可重新测量 */
             dbg_str("[HMI] stopped ack -> notice refreshed, state=IDLE\r\n");
         }
         break;
@@ -1344,9 +1319,7 @@ static void on_bp_frame(uint8_t cmd, const uint8_t *data, uint8_t len)
     case BP_CMD_START: 
 	{                                
 		bp_pressure_t p;
-        /* ★修复：实时气压帧 DATA 不足 2 字节时，bp_parse_pressure 会读到
-         *  g_data[] 里上一帧残留的旧字节，产生伪数值(甚至溢出到几千)，
-         *  被屏当作越界/非法数值显示成 "？？"。先校验长度，不足则丢弃本帧。 */
+        /* 实时气压帧：DATA 不足 2 字节时丢弃，避免读到上一帧残留字节产生伪数值(甚至溢出)。 */
         if (len < 2u) break;
         bp_parse_pressure(data, &p);
         dbg_str(" PRESSURE=");
@@ -1354,17 +1327,13 @@ static void on_bp_frame(uint8_t cmd, const uint8_t *data, uint8_t len)
         dbg_str(" beat=");
         dbg_u32(p.has_beat);
         dbg_str("\r\n");
-        /* ★修复：量程保护。HKB-08B+ 袖带压正常 0~约300mmHg（超压保护 295 报错）；
-         *  真实读数为 16 位值、高字节仅 0~1，故合理上限 511；这里取 600 留余量，
-         *  既能拦下旧缓冲伪数值(常达几千/65535)，又绝不误伤真实读数。
-         *  超出则跳过本次刷新(沿用上次数值)，避免把越界/伪数值写屏导致屏显示 "？？"。 */
+        /* 量程保护：HKB-08B+ 袖带压正常 0~约300mmHg（超压保护 295 报错），
+         *  真实读数高字节仅 0~1，合理上限取 600 留余量；超限即视为旧缓冲伪值，
+         *  跳过本次刷新(沿用上次数值)，避免越界值写屏被显示成 "？？"。 */
         if (p.pressure > 600u) break;   /* 量程保护：沿用上次值，不写屏 */
-        /* ★第七节（修正版）：实时气压帧由传感器约 10~50Hz 持续上报。
-         * 之前用"变化≥3mmHg 立即刷新"的闸门，在充气/泄气急变时相邻帧差常≥3 → 闸门每帧放行
-         * → 又回到高频写屏淹没 9600 串口 → 时钟仍卡顿跳变（正是"点开始/停止测量时跳"的根因）。
-         * 现改为【纯时间闸门】：距上次写屏 ≥150ms 才刷新(≈6.7Hz 上限)，与传感器报多快、压力变多大
-         * 都无关，串口负载恒定≤~100字节/秒，给每秒的时钟帧(全页广播≈320字节/秒)留足余量，
-         * 时钟每 1s 准时到达。压力条 6.7Hz 更新肉眼仍平滑跟手。 */
+        /* 写屏节流：纯时间闸门，距上次写屏 ≥150ms 才刷新(≈6.7Hz 上限)，
+         *  与传感器上报频率、压力变化量无关，串口负载恒定，给每秒时钟帧留足余量，
+         *  时钟每 1s 准时到达；压力条 6.7Hz 更新肉眼仍平滑跟手。 */
         {
             uint32_t now = g_tick;
             if (now - s_press_send_tick >= 150u) {
@@ -1383,7 +1352,7 @@ static void on_bp_frame(uint8_t cmd, const uint8_t *data, uint8_t len)
 
     case BP_CMD_ERROR: 
 	{                                
-		uint8_t code = len ? data[0] : 0;
+		uint8_t code = len ? data[0] : 0;   /* 错误码，无数据时为 0 */
         dbg_str(" ERROR code=");
         dbg_u32(code);
         dbg_str("\r\n");
@@ -1394,7 +1363,7 @@ static void on_bp_frame(uint8_t cmd, const uint8_t *data, uint8_t len)
                  (uint8_t)((s_sec_of_day / 60u) % 60u));
         hmi_change_page(HMI_SCREEN_NOTICE);
         s_state = ST_IDLE;
-        status_set(ST_TXT_CONTEXT_IDLE, ST_TXT_FOOTER_WAIT, "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xEC\xB3\xA3", "\xC7\xEB\xB0\xB4\xCC\xE1\xCA\xBE\xD6\xD8\xD0\xC2\xB2\xE2\xC1\xBF");
+        status_set(ST_TXT_CONTEXT_IDLE, ST_TXT_FOOTER_WAIT, "\xB1\xBE\xB4\xCE\xB2\xE2\xC1\xBF\xD2\xEC\xB3\xA3", "\xC7\xEB\xB0\xB4\xCC\xE1\xCA\xBE\xD6\xD8\xD0\xC2\xB2\xE2\xC1\xBF");   /* 本次测量异常 / 请按提示重新测量 */
         dbg_str("[HMI] error -> notice page(3)\r\n");
         break;
     }

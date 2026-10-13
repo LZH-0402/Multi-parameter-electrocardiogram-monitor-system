@@ -3,7 +3,7 @@
 <title>Static Call Graph - [..\OBJ\STM32F407_Template.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image ..\OBJ\STM32F407_Template.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5050106: Last Updated: Tue Oct 13 13:56:13 2026
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5050106: Last Updated: Tue Oct 13 19:24:51 2026
 <BR><P>
 <H3>Maximum Stack Usage =        436 bytes + Unknown(Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -622,6 +622,7 @@ Global Symbols
 <LI><a href="#[76]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;begin_cmd
 </UL>
 <BR>[Called By]<UL><LI><a href="#[98]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_pause_ui
+<LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_push_rows
 </UL>
 
 <P><STRONG><a name="[89]"></a>HMI_SetProgress</STRONG> (Thumb, 48 bytes, Stack size 16 bytes, dc_hmi.o(i.HMI_SetProgress))
@@ -634,8 +635,8 @@ Global Symbols
 <LI><a href="#[76]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;begin_cmd
 </UL>
 <BR>[Called By]<UL><LI><a href="#[fe]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;task_hmi_value
-<LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_setup
 <LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;NotifySlider
+<LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_setup
 </UL>
 
 <P><STRONG><a name="[8b]"></a>HMI_SetRTCTime</STRONG> (Thumb, 122 bytes, Stack size 40 bytes, dc_hmi.o(i.HMI_SetRTCTime))
@@ -672,15 +673,15 @@ Global Symbols
 </UL>
 <BR>[Called By]<UL><LI><a href="#[fe]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;task_hmi_value
 <LI><a href="#[b8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;app_hmi_init
+<LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;NotifySlider
+<LI><a href="#[10e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;trend_show_labels
+<LI><a href="#[9b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;set_trend_range
 <LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_setup
 <LI><a href="#[98]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_pause_ui
 <LI><a href="#[9d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_limits
 <LI><a href="#[ba]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_duration
 <LI><a href="#[b5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_update
 <LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_push_rows
-<LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;NotifySlider
-<LI><a href="#[10e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;trend_show_labels
-<LI><a href="#[9b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;set_trend_range
 </UL>
 
 <P><STRONG><a name="[90]"></a>HMI_WaveFlush</STRONG> (Thumb, 38 bytes, Stack size 8 bytes, dc_hmi.o(i.HMI_WaveFlush))
@@ -691,7 +692,7 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_WavePush
 </UL>
 
-<P><STRONG><a name="[108]"></a>HMI_WaveGetPR</STRONG> (Thumb, 20 bytes, Stack size 0 bytes, dc_hmi.o(i.HMI_WaveGetPR))
+<P><STRONG><a name="[108]"></a>HMI_WaveGetPRDetail</STRONG> (Thumb, 32 bytes, Stack size 0 bytes, dc_hmi.o(i.HMI_WaveGetPRDetail))
 <BR><BR>[Called By]<UL><LI><a href="#[fd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;on_uno_frame
 </UL>
 
@@ -733,15 +734,15 @@ Global Symbols
 <BR><BR>[Called By]<UL><LI><a href="#[bd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;nvic_init
 </UL>
 
-<P><STRONG><a name="[82]"></a>NotifyButton</STRONG> (Thumb, 186 bytes, Stack size 16 bytes, app_bloodoxygen.o(i.NotifyButton))
+<P><STRONG><a name="[82]"></a>NotifyButton</STRONG> (Thumb, 222 bytes, Stack size 16 bytes, app_bloodoxygen.o(i.NotifyButton))
 <BR><BR>[Stack]<UL><LI>Max Depth = 128<LI>Call Chain = NotifyButton &rArr; hmi_show_pause_ui &rArr; hmi_show_duration &rArr; HMI_SetText &rArr; end_cmd &rArr; hmi_tx
 </UL>
 <BR>[Calls]<UL><LI><a href="#[8d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetScreen
+<LI><a href="#[9b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;set_trend_range
+<LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;request_resync
 <LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_setup
 <LI><a href="#[98]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_pause_ui
 <LI><a href="#[9a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_clear
-<LI><a href="#[9b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;set_trend_range
-<LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;request_resync
 </UL>
 <BR>[Called By]<UL><LI><a href="#[7e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_Poll
 </UL>
@@ -759,8 +760,8 @@ Global Symbols
 <P><STRONG><a name="[81]"></a>NotifyScreen</STRONG> (Thumb, 54 bytes, Stack size 8 bytes, app_bloodoxygen.o(i.NotifyScreen))
 <BR><BR>[Stack]<UL><LI>Max Depth = 72<LI>Call Chain = NotifyScreen &rArr; hmi_show_setup &rArr; HMI_SetText &rArr; end_cmd &rArr; hmi_tx
 </UL>
-<BR>[Calls]<UL><LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_setup
-<LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;request_resync
+<BR>[Calls]<UL><LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;request_resync
+<LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_setup
 </UL>
 <BR>[Called By]<UL><LI><a href="#[7e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_Poll
 </UL>
@@ -839,7 +840,7 @@ Global Symbols
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f40_41xxx.o(RESET)
 </UL>
-<P><STRONG><a name="[a2]"></a>UNO_ParseByte</STRONG> (Thumb, 360 bytes, Stack size 8 bytes, uno.o(i.UNO_ParseByte))
+<P><STRONG><a name="[a2]"></a>UNO_ParseByte</STRONG> (Thumb, 348 bytes, Stack size 8 bytes, uno.o(i.UNO_ParseByte))
 <BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = UNO_ParseByte
 </UL>
 <BR>[Calls]<UL><LI><a href="#[a3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;rd_i32_le
@@ -1001,13 +1002,13 @@ Global Symbols
 <BR><BR>[Stack]<UL><LI>Max Depth = 32<LI>Call Chain = __2snprintf
 </UL>
 <BR>[Called By]<UL><LI><a href="#[fe]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;task_hmi_value
+<LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;NotifySlider
+<LI><a href="#[10e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;trend_show_labels
 <LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_setup
 <LI><a href="#[9d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_limits
 <LI><a href="#[ba]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_duration
 <LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_push_rows
 <LI><a href="#[b2]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_emit
-<LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;NotifySlider
-<LI><a href="#[10e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;trend_show_labels
 </UL>
 
 <P><STRONG><a name="[68]"></a>__aeabi_errno_addr</STRONG> (Thumb, 4 bytes, Stack size 0 bytes, errno.o(i.__aeabi_errno_addr))
@@ -1028,16 +1029,16 @@ Global Symbols
 <BR><BR>[Stack]<UL><LI>Max Depth = 132<LI>Call Chain = app_hmi_init &rArr; rtc_sync_to_screen &rArr; rtc_build_display &rArr; rtc_day_step
 </UL>
 <BR>[Calls]<UL><LI><a href="#[b7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;millis
-<LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_setup
-<LI><a href="#[98]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_pause_ui
-<LI><a href="#[9d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_limits
-<LI><a href="#[ba]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_duration
-<LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_push_rows
 <LI><a href="#[8e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetText
 <LI><a href="#[86]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetBackLight
 <LI><a href="#[7b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_HistoryEnable
 <LI><a href="#[9b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;set_trend_range
 <LI><a href="#[b9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;rtc_sync_to_screen
+<LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_setup
+<LI><a href="#[98]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_pause_ui
+<LI><a href="#[9d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_limits
+<LI><a href="#[ba]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_duration
+<LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_push_rows
 </UL>
 <BR>[Called By]<UL><LI><a href="#[5c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
@@ -1247,11 +1248,12 @@ Global Symbols
 <BR><BR>[Called By]<UL><LI><a href="#[fe]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;task_hmi_value
 <LI><a href="#[ff]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;task_hmi_trend
 <LI><a href="#[100]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;task_clock
+<LI><a href="#[fd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;on_uno_frame
 <LI><a href="#[b8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;app_hmi_init
 <LI><a href="#[5c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
-<LI><a href="#[b6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_watch
 <LI><a href="#[110]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;spo2_rtc_set
 <LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;request_resync
+<LI><a href="#[b6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_watch
 </UL>
 
 <P><STRONG><a name="[a1]"></a>on_uart_rx</STRONG> (Thumb, 108 bytes, Stack size 16 bytes, app_bp.o(i.on_uart_rx))
@@ -1264,12 +1266,13 @@ Global Symbols
 <LI><a href="#[3f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UART5_IRQHandler
 </UL>
 
-<P><STRONG><a name="[fd]"></a>on_uno_frame</STRONG> (Thumb, 96 bytes, Stack size 88 bytes, app_bloodoxygen.o(i.on_uno_frame))
+<P><STRONG><a name="[fd]"></a>on_uno_frame</STRONG> (Thumb, 166 bytes, Stack size 88 bytes, app_bloodoxygen.o(i.on_uno_frame))
 <BR><BR>[Stack]<UL><LI>Max Depth = 176<LI>Call Chain = on_uno_frame &rArr; HMI_WavePush &rArr; HMI_WaveFlush &rArr; HMI_GraphAddData &rArr; end_cmd &rArr; hmi_tx
 </UL>
-<BR>[Calls]<UL><LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_WavePush
+<BR>[Calls]<UL><LI><a href="#[b7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;millis
+<LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_WavePush
 <LI><a href="#[109]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_WaveGetSQI
-<LI><a href="#[108]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_WaveGetPR
+<LI><a href="#[108]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_WaveGetPRDetail
 <LI><a href="#[107]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UNO_WaveTake
 <LI><a href="#[106]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UNO_WaveClear
 </UL>
@@ -1295,8 +1298,8 @@ Global Symbols
 <BR><BR>[Stack]<UL><LI>Max Depth = 140<LI>Call Chain = task_clock &rArr; rtc_sync_to_screen &rArr; rtc_build_display &rArr; rtc_day_step
 </UL>
 <BR>[Calls]<UL><LI><a href="#[b7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;millis
-<LI><a href="#[ba]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_duration
 <LI><a href="#[b9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;rtc_sync_to_screen
+<LI><a href="#[ba]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_duration
 </UL>
 <BR>[Called By]<UL><LI><a href="#[5c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
@@ -1311,20 +1314,20 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[5c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
 
-<P><STRONG><a name="[fe]"></a>task_hmi_value</STRONG> (Thumb, 500 bytes, Stack size 24 bytes, app_bloodoxygen.o(i.task_hmi_value))
+<P><STRONG><a name="[fe]"></a>task_hmi_value</STRONG> (Thumb, 522 bytes, Stack size 24 bytes, app_bloodoxygen.o(i.task_hmi_value))
 <BR><BR>[Stack]<UL><LI>Max Depth = 216<LI>Call Chain = task_hmi_value &rArr; alm_update &rArr; alm_watch &rArr; alm_emit &rArr; alm_push_rows &rArr; HMI_SetText &rArr; end_cmd &rArr; hmi_tx
 </UL>
 <BR>[Calls]<UL><LI><a href="#[b7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;millis
+<LI><a href="#[8e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetText
+<LI><a href="#[89]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetProgress
+<LI><a href="#[111]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;strcpy
+<LI><a href="#[10e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;trend_show_labels
 <LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_setup
 <LI><a href="#[98]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_pause_ui
 <LI><a href="#[9d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_limits
 <LI><a href="#[ba]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_duration
 <LI><a href="#[b5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_update
 <LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_push_rows
-<LI><a href="#[8e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetText
-<LI><a href="#[89]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetProgress
-<LI><a href="#[111]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;strcpy
-<LI><a href="#[10e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;trend_show_labels
 <LI><a href="#[9c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__2snprintf
 </UL>
 <BR>[Called By]<UL><LI><a href="#[5c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
@@ -1406,11 +1409,11 @@ Local Symbols
 <BR><BR>[Called By]<UL><LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_WavePush
 </UL>
 
-<P><STRONG><a name="[95]"></a>ppg_peak</STRONG> (Thumb, 490 bytes, Stack size 0 bytes, dc_hmi.o(i.ppg_peak))
+<P><STRONG><a name="[95]"></a>ppg_peak</STRONG> (Thumb, 574 bytes, Stack size 0 bytes, dc_hmi.o(i.ppg_peak))
 <BR><BR>[Called By]<UL><LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_WavePush
 </UL>
 
-<P><STRONG><a name="[93]"></a>ppg_reset</STRONG> (Thumb, 182 bytes, Stack size 0 bytes, dc_hmi.o(i.ppg_reset))
+<P><STRONG><a name="[93]"></a>ppg_reset</STRONG> (Thumb, 186 bytes, Stack size 0 bytes, dc_hmi.o(i.ppg_reset))
 <BR><BR>[Called By]<UL><LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_WavePush
 </UL>
 
@@ -1479,8 +1482,8 @@ Local Symbols
 <P><STRONG><a name="[9a]"></a>alm_clear</STRONG> (Thumb, 38 bytes, Stack size 8 bytes, app_bloodoxygen.o(i.alm_clear))
 <BR><BR>[Stack]<UL><LI>Max Depth = 88<LI>Call Chain = alm_clear &rArr; alm_push_rows &rArr; HMI_SetText &rArr; end_cmd &rArr; hmi_tx
 </UL>
-<BR>[Calls]<UL><LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_push_rows
-<LI><a href="#[64]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_memclr
+<BR>[Calls]<UL><LI><a href="#[64]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_memclr
+<LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_push_rows
 </UL>
 <BR>[Called By]<UL><LI><a href="#[82]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;NotifyButton
 </UL>
@@ -1488,19 +1491,20 @@ Local Symbols
 <P><STRONG><a name="[b2]"></a>alm_emit</STRONG> (Thumb, 280 bytes, Stack size 72 bytes, app_bloodoxygen.o(i.alm_emit))
 <BR><BR>[Stack]<UL><LI>Max Depth = 152<LI>Call Chain = alm_emit &rArr; alm_push_rows &rArr; HMI_SetText &rArr; end_cmd &rArr; hmi_tx
 </UL>
-<BR>[Calls]<UL><LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_push_rows
-<LI><a href="#[75]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_Beep
+<BR>[Calls]<UL><LI><a href="#[75]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_Beep
 <LI><a href="#[b4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;strncpy
 <LI><a href="#[b3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_memcpy
+<LI><a href="#[b1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_push_rows
 <LI><a href="#[9c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__2snprintf
 </UL>
 <BR>[Called By]<UL><LI><a href="#[b6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_watch
 </UL>
 
-<P><STRONG><a name="[b1]"></a>alm_push_rows</STRONG> (Thumb, 174 bytes, Stack size 40 bytes, app_bloodoxygen.o(i.alm_push_rows))
+<P><STRONG><a name="[b1]"></a>alm_push_rows</STRONG> (Thumb, 190 bytes, Stack size 40 bytes, app_bloodoxygen.o(i.alm_push_rows))
 <BR><BR>[Stack]<UL><LI>Max Depth = 80<LI>Call Chain = alm_push_rows &rArr; HMI_SetText &rArr; end_cmd &rArr; hmi_tx
 </UL>
 <BR>[Calls]<UL><LI><a href="#[8e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetText
+<LI><a href="#[88]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetControlVisible
 <LI><a href="#[9c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__2snprintf
 </UL>
 <BR>[Called By]<UL><LI><a href="#[fe]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;task_hmi_value
@@ -1512,8 +1516,8 @@ Local Symbols
 <P><STRONG><a name="[b5]"></a>alm_update</STRONG> (Thumb, 198 bytes, Stack size 16 bytes, app_bloodoxygen.o(i.alm_update))
 <BR><BR>[Stack]<UL><LI>Max Depth = 192<LI>Call Chain = alm_update &rArr; alm_watch &rArr; alm_emit &rArr; alm_push_rows &rArr; HMI_SetText &rArr; end_cmd &rArr; hmi_tx
 </UL>
-<BR>[Calls]<UL><LI><a href="#[b6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_watch
-<LI><a href="#[8e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetText
+<BR>[Calls]<UL><LI><a href="#[8e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetText
+<LI><a href="#[b6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;alm_watch
 </UL>
 <BR>[Called By]<UL><LI><a href="#[fe]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;task_hmi_value
 </UL>
@@ -1553,9 +1557,9 @@ Local Symbols
 <P><STRONG><a name="[98]"></a>hmi_show_pause_ui</STRONG> (Thumb, 148 bytes, Stack size 8 bytes, app_bloodoxygen.o(i.hmi_show_pause_ui))
 <BR><BR>[Stack]<UL><LI>Max Depth = 112<LI>Call Chain = hmi_show_pause_ui &rArr; hmi_show_duration &rArr; HMI_SetText &rArr; end_cmd &rArr; hmi_tx
 </UL>
-<BR>[Calls]<UL><LI><a href="#[ba]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_duration
-<LI><a href="#[8e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetText
+<BR>[Calls]<UL><LI><a href="#[8e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetText
 <LI><a href="#[88]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HMI_SetControlVisible
+<LI><a href="#[ba]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;hmi_show_duration
 </UL>
 <BR>[Called By]<UL><LI><a href="#[fe]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;task_hmi_value
 <LI><a href="#[b8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;app_hmi_init

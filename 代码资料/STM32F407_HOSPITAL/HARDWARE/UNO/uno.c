@@ -1,26 +1,37 @@
 #include "uno.h"
 
+/* ============================================================
+ * uno.c —— AFE4490(代号 UNO) 血氧模块串口帧解析
+ *   通道  ：USART6 @57600，每收到 1 字节由接收中断调用 UNO_ParseByte()
+ *   帧格式：0A FA 0A 00 02 + 10 字节 payload + 00 0B，共 17 字节
+ *   输出  ：解析结果写入 g_meas；IR 采样另入环形缓冲供波形显示
+ *   依赖  ：uno.h（measurement_t / g_meas / UNO_WAVE_RING）
+ * ============================================================ */
+
 measurement_t g_meas;
 uint8_t      g_new_frame = 0;
 
 /* ---- 接收诊断（供 USART1 观察链路） ---- */
 volatile uint32_t g_uno_rx_bytes = 0;   /* 收到的原始字节总数 */
 volatile uint32_t g_uno_frames   = 0;   /* 解析成功的完整帧数 */
+uint8_t  g_uno_hr        = 0;           /* UNO 模块自算的 HR(pl[9])，bpm；供诊断对照，不被 F407 峰检覆盖 */
 
 /* 最近 32 字节的环形缓冲：即使波特率不对（收到乱码）也能看出"到底有没有在发" */
 #define UNO_RING_SZ   32u
 static uint8_t  uno_ring[UNO_RING_SZ];
-static uint8_t  uno_ring_w = 0;
+static uint8_t  uno_ring_w = 0;         /* 写指针，仅中断改 */
 
 /* ---- PPG 波形采样环形缓冲（单生产者=中断，单消费者=主循环，无需关中断） ----
  * 写入：UNO_ParseByte() 每解出一帧成功帧、更新完 g_meas 后入环一个 IR 原始值。
- * 读出：主循环调 UNO_WaveTake()。两个指针各只有一个写者，16 位读写天然原子。 */
+ * 读出：主循环调 UNO_WaveTake()。两个指针各只有一个写者，16 位读写天然原子。
+ * 容量 UNO_WAVE_RING 必须是 2 的幂，取模用位与完成。 */
 #define UNO_WAVE_MASK  (UNO_WAVE_RING - 1u)
-static volatile int32_t  uno_wave[UNO_WAVE_RING];
+static volatile int32_t  uno_wave[UNO_WAVE_RING];   /* IR 原始 ADC，未做任何缩放 */
 static volatile uint16_t uno_wave_w = 0;    /* 写指针：只有中断改 */
 static volatile uint16_t uno_wave_r = 0;    /* 读指针：只有主循环改 */
-volatile uint16_t g_uno_wave_drop = 0;
+volatile uint16_t g_uno_wave_drop = 0;      /* 环满丢弃点数（诊断用，正常为 0） */
 
+/* 按写入先后顺序取走最多 max 个波形点，返回实际取出个数；主循环上下文调用，不可在中断里调用 */
 uint16_t UNO_WaveTake(int32_t *out, uint16_t max)
 {
     uint16_t n = 0;
@@ -32,11 +43,13 @@ uint16_t UNO_WaveTake(int32_t *out, uint16_t max)
     return n;
 }
 
+/* 当前积压点数：0 表示没有新采样，可用于早退判断 */
 uint16_t UNO_WavePending(void)
 {
     return (uint16_t)((uno_wave_w - uno_wave_r) & UNO_WAVE_MASK);
 }
 
+/* 丢弃当前全部积压（暂停/恢复监护时调用，避免恢复瞬间把积压一次冲出） */
 void UNO_WaveClear(void)
 {
     uno_wave_r = uno_wave_w;
@@ -61,16 +74,19 @@ void UNO_WaveClear(void)
  * 即使 IR/RED 数据里出现 0x0A/0xFA 也不会误同步，因为头是固定 5 字节序列，
  * 且末尾再用 00 0B 二次校验。
  * ------------------------------------------------------------------ */
+
+/* 解析状态机：按 [5 字节头] -> [10 字节 payload] -> [2 字节帧尾] 顺序推进 */
 typedef enum {
     S0_SYNC1, S1_SYNC2, S2_LENL, S3_LENH, S4_TYPE,
     S5_PAYLOAD, S6_FOOT1, S7_FOOT2
 } parse_state_t;
 
-static parse_state_t st     = S0_SYNC1;
-static uint8_t       pl[10];
-static uint8_t       pl_i   = 0;
-static uint8_t       foot1  = 0;
+static parse_state_t st     = S0_SYNC1;   /* 当前解析状态 */
+static uint8_t       pl[10];              /* payload 缓存，长度固定 10 字节 */
+static uint8_t       pl_i   = 0;          /* payload 已收字节数 */
+static uint8_t       foot1  = 0;          /* 帧尾首字节，等待第二字节二次校验 */
 
+/* 读取小端 4 字节有符号整数（帧内 IR/RED 字段为 int32 小端） */
 static int32_t rd_i32_le(const uint8_t *p)
 {
     return (int32_t)(((uint32_t)p[0]) |
@@ -79,6 +95,8 @@ static int32_t rd_i32_le(const uint8_t *p)
                      ((uint32_t)p[3] << 24));
 }
 
+/* 每收到 USART6 一个字节调用一次（中断上下文，不可阻塞、不可重入）。
+ * 先计数并入诊断环，再走状态机；仅当完整帧校验通过才更新 g_meas 并置 g_new_frame。 */
 void UNO_ParseByte(uint8_t b)
 {
     /* 先记账 + 入环，再做状态机判定：这样即使波特率错、同步不上，
@@ -115,13 +133,16 @@ void UNO_ParseByte(uint8_t b)
     case S7_FOOT2:
         if (foot1 == 0x00 && b == 0x0B) {
             g_uno_frames++;
-            g_meas.ir_raw        = rd_i32_le(&pl[0]);
-            g_meas.red_raw       = rd_i32_le(&pl[4]);
+            g_meas.ir_raw        = rd_i32_le(&pl[0]);       /* pl[0..3] = IR  */
+            g_meas.red_raw       = rd_i32_le(&pl[4]);       /* pl[4..7] = RED */
             g_meas.spo2          = (int16_t)pl[8];
-            g_meas.pulse_rate    = (int16_t)pl[9];
+            /* 脉率由 F407 峰检计算，此处不写 g_meas.pulse_rate；UNO 原 HR 仅存到
+             * g_uno_hr 供诊断对照，避免本中断与 on_uno_frame() 争写该变量。 */
+            g_uno_hr             = pl[9];
             g_meas.result_valid  = (pl[8] != 0) ? 1 : 0;   /* spo2==0 视为无效 */
             g_meas.probe_state   = (pl[8] != 0) ? 1 : 0;
-            g_meas.signal_quality = (pl[8] != 0) ? 100 : 0; /* 占位，见文档 8.1 */
+            /* 不再写 g_meas.signal_quality：该值由主循环 on_uno_frame() 写入真实 SQI，
+               本函数在 USART6 中断里每帧执行，若在此写占位值会覆盖真实值。 */
             g_new_frame = 1;
 
             /* 波形入环：每个 IR 采样都进，不合并、不丢点（见 uno.h 的说明）。
@@ -147,6 +168,7 @@ void UNO_ParseByte(uint8_t b)
 /* ============================================================
  * 诊断辅助
  * ============================================================ */
+/* 复位解析状态机、诊断计数与波形环指针（切换波特率 / 重新同步前调用） */
 void UNO_Reset(void)
 {
     st      = S0_SYNC1;
@@ -159,6 +181,7 @@ void UNO_Reset(void)
     uno_wave_r = 0;
 }
 
+/* 拷贝最近 n 个原始接收字节（按接收先后顺序）到 out，返回实际拷贝个数；n 上限 UNO_RING_SZ(32) */
 uint8_t UNO_Snapshot(uint8_t *out, uint8_t n)
 {
     uint8_t w, i;

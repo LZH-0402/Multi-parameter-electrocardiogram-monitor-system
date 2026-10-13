@@ -1,7 +1,7 @@
 /*!
  * \file dc_hmi.h
  * \brief 大彩串口屏（DC80480DN050 / SPO2_Hospital）下行驱动 + 上行通知解析
- *        —— 已移植为标准库 SPL 版本，使用 USART2（PA2/PA3）。
+ *        —— 标准库 SPL 版本，使用 USART2（PA2/PA3）。
  *
  * 帧格式（本工程 DeviceEnableCRC="0"，不启用 CRC）：
  *      下行：EE <命令和参数> FF FC FF FF
@@ -19,6 +19,18 @@
 #define __DC_HMI_H
 
 #include "stdint.h"
+
+/* ============================================================
+ * 调试总开关
+ *   DEBUG_PPG = 1：打开 F407 峰检/PR/SQI 的一整套诊断量与串口打印字段，
+ *                  便于排查；会多占少量 RAM/CPU 与串口带宽。
+ *   DEBUG_PPG = 0：（默认）干净固件——不产生这些变量、不打印。
+ *   诊断量与 PR/SQI 的计算逻辑无关，切换开关不影响测量结果。
+ *   （app_bloodoxygen.h/.c 与 main.c 里的诊断项共用本开关。）
+ * ============================================================ */
+#ifndef DEBUG_PPG
+#define DEBUG_PPG 0
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,7 +66,7 @@ void HMI_SetButton(uint16_t screen_id, uint16_t ctrl_id, uint8_t state);
 
 /*! 运行时切换控件显隐 —— 指令集 EE B1 03 <screen><ctrl><visible>
  *  visible: 1=显示 / 0=隐藏（不是"可见"的反义 0="不可见"）
- *  ★ 本工程用它来做"暂停监护 / 继续监护"两个同位置按钮的切换：
+ *  本工程用它来做"暂停监护 / 继续监护"两个同位置按钮的切换：
  *    暂停时隐藏 btn_pause(1)、显示 btn_resume(6)，恢复时反之。
  *  注意：切换画面后屏会按控件默认属性重绘，需在进入画面时重新下发一次。 */
 void HMI_SetControlVisible(uint16_t screen_id, uint16_t ctrl_id, uint8_t visible);
@@ -122,12 +134,14 @@ void HMI_WaveFlush(void);
 void HMI_WaveReset(void);
 
 /*! 读取 F407 端用 IR 波形重算的脉率 PR（bpm）；0 = 尚未算出 / 信号丢失。
- *  ★ 2026-10-13 新增：替代 UNO 端易误算（无幅度阈值）的 PR。 */
+ *  替代 UNO 端易误算（无幅度阈值）的 PR。 */
 int16_t HMI_WaveGetPR(void);
 
-/*! 读取真实信号质量 SQI（0~100，峰-峰一致性）；样本不足返回 0。
- *  ★ 2026-10-13 新增：替代原来的固定占位 100。 */
+/*! 读取真实信号质量 SQI（0~100，峰-峰一致性）；样本不足返回 0。 */
 uint8_t HMI_WaveGetSQI(void);
+
+/*! 调试：拆开 F407 峰检内部状态（pr_ok / pr_est / prom_cnt），用于定位 PR=0 根因。 */
+void HMI_WaveGetPRDetail(uint8_t *ok_out, int16_t *est_out, uint8_t *prom_out);
 
 /* ---------------- 上行：通知解析 ---------------- */
 
@@ -136,6 +150,19 @@ void HMI_RxByte(uint8_t b);
 
 /*! 自屏(USART2 RX)累计收到的字节数：>0 说明屏有回数据（可用于判定链路/波特率） */
 extern volatile uint32_t g_hmi_rx_bytes;
+
+#if DEBUG_PPG
+/*! 调试：ppg_reset 被调用次数；若持续快速增长，说明 valid 在抖动导致峰检反复重置。 */
+extern volatile uint32_t g_ppg_rst_cnt;
+
+/*! 调试：峰检幅度/阈值内部量（定位 f407_ok=0 是"阈值卡死"还是"信号太小"）。
+ *  amp=recent_amp  thr=动态阈值  ac=最近|clean|  above=超阈态  pkcnt=累计确认峰数 */
+extern volatile float    g_ppg_dbg_amp;
+extern volatile float    g_ppg_dbg_thr;
+extern volatile float    g_ppg_dbg_ac;
+extern volatile uint8_t  g_ppg_dbg_above;
+extern volatile uint32_t g_ppg_dbg_pkcnt;
+#endif /* DEBUG_PPG */
 
 /*! 在主循环/任务里周期调用，从上行队列取帧并回调下面的 Notify* */
 void HMI_Poll(void);

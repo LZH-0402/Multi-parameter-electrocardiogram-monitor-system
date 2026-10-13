@@ -3,13 +3,13 @@
 
 #include <stdint.h>
 
-/* 与《代码开发设计步骤》第 3 节一致的测量结构 */
+/* 血氧测量结果（应用层只读；由 uno.c 解析出 UNO 帧后写入） */
 typedef struct {
     int32_t  red_raw;        /* RED 通道原始 ADC（来自 AFE4490 LED2VAL） */
     int32_t  ir_raw;         /* IR  通道原始 ADC（来自 AFE4490 LED1VAL） */
     int16_t  spo2;           /* 血氧 0~100；0 表示无效 / 探头错误 */
-    int16_t  pulse_rate;     /* 脉率 PR，bpm */
-    uint8_t  signal_quality; /* 灌注质量 0~100（当前为占位值，见文档 8.1） */
+    int16_t  pulse_rate;     /* 脉率 PR，bpm；由 F407 峰检计算 */
+    uint8_t  signal_quality; /* 信号质量 0~100；由主循环 on_uno_frame() 写入真实 SQI */
     uint8_t  probe_state;    /* 0 未接入 / 错误，1 接入 */
     uint8_t  result_valid;   /* 1 = 数值有效 */
     uint8_t  fault_code;
@@ -17,14 +17,15 @@ typedef struct {
 } measurement_t;
 
 extern measurement_t g_meas;     /* 解析结果，应用层读取 */
-/*! 收到一帧置 1。★ 2026-10-12 起业务**不再**用它做波形门控 —— 单个布尔标志会把
- *  停顿期间到达的多帧合并成一点（波形"卡顿"/比例失真），波形改走下面的采样环。
- *  保留仅为兼容/诊断。 */
+/*! 收到一帧置 1。
+ *  业务不再用它做波形门控 —— 单个布尔标志会把停顿期间到达的多帧合并成一点
+ *  （波形"卡顿"/比例失真），波形改走下面的采样环。保留仅为兼容/诊断。 */
 extern uint8_t      g_new_frame;
 
 /* 接收诊断：用于在 USART1 上判断"UNO 到底有没有在发" */
 extern volatile uint32_t g_uno_rx_bytes;  /* USART6 收到的原始字节总数 */
 extern volatile uint32_t g_uno_frames;    /* 解析成功的完整帧数 */
+extern uint8_t  g_uno_hr;                 /* UNO 自算 HR(pl[9])，bpm；供诊断对照，不被 F407 峰检覆盖 */
 
 /* ---------------- PPG 波形采样环形缓冲 ----------------
  * 为什么需要：main() 是单线程事件循环，而血压屏走 9600 波特率、发送是"死等 TXE"

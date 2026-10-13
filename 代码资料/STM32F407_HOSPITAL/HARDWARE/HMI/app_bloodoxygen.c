@@ -1,36 +1,28 @@
 /*!
  * \file app_bloodoxygen.c
- * \brief 应用层：把 UNO 解析出的真实数据写到 SPO2_Hospital 屏上
+ * \brief 血氧屏应用层：把 UNO 解析出的测量数据写到 SPO2_Hospital 屏上
  *
- * 与《代码开发设计步骤》一致：不再直读 SPI（那部分在 UNO 上完成），
- * 而是消费 UNO 解析结果 g_meas。时序：
- *   收到 UNO 帧 -> on_uno_frame() 推波形（约 90 帧/s）
+ * 依赖：
+ *   dc_hmi.c   屏驱动 / HMI_* 指令 / HMI_Wave* 峰检（PR 与信号质量来自 F407 端峰检）
+ *   uno.c      USART6 的 AFE4490(代号 UNO) 血氧模块解析
+ *   hmi_ids.h  控件号
+ *   merge_cfg.h g_rtc_epoch_tick：两屏共用的软 RTC 基准
+ * 硬件通道：
+ *   USART2 -> 血氧屏 DC 串口屏(115200)
+ *   USART6 -> AFE4490 血氧模块(57600)
+ *
+ * 时序（全部由主循环调用，非中断上下文，可重入性由调用方保证串行）：
+ *   on_uno_frame()   收到 UNO 帧时推波形，约 90 帧/s
  *   task_hmi_value() 每 400ms  写数值/状态 + 报警判定
- *   task_hmi_trend() 每 2s     追加一点到历史曲线（★2026-10-10 由 60s 改为 2s）
+ *   task_hmi_trend() 每 2s     追加一点到历史曲线
  *   task_clock()     每 1s     推进软 RTC + 累加监护时长并刷"监护时间"
  *
- * ★ 控件归属（2026-10-10 **二次更正**）：
- *   上一版判断"屏端 main.lua 不会执行"是【错的】，据此产生的 Lua 独占结论已作废。
- *   实际证据：
- *     1) 每次编译都会把工程根目录的 main.lua 原样拷进 dciot_build\private\main.lua
- *        （两者 md5 完全相同），即 Lua 脚本是随工程下发到屏上的；
- *     2) tftprj 里 LUAPrecompile="0"，该项在 VisualTFT 里的中文名正是"**预编译LUA**"
- *        （勾选框），0 = 不在上位机预编译 —— 由屏上电后自行解释 main.lua。
- *   而 main.lua 与 MCU 双写同一批控件、且各自维护一份 paused / monitor_sec，
- *   正是"暂停后按钮文案不变 / 监护时间永远是 00:00:01"的根因：
- *     - main.lua on_init: start_timer(0,1000,0,1)，repeat=1 **只触发一次**，
- *       on_timer 把 monitor_sec 加到 1 后再也不触发；而每次切回主界面
- *       on_screen_change -> refresh_main() 都写 "监护时间 "..fmt_hms(1) == 00:00:01；
- *     - refresh_main() 用 Lua 自己的 paused(=false) 把 12/20 覆盖回
- *       "测量有效 / 脉搏波采集中"，把 MCU 写的"已暂停 / 暂停中"冲掉。
- *   => 处理办法：**屏端 main.lua 已停用**（换成空壳脚本，原版备份为
- *      main.lua.原版备份.txt），全部动态内容改由 MCU **独占**写入（见 hmi_ids.h）。
- *
- * ★ 画面跳转由屏原生完成：button_type=0 的按钮其 switch 属性就是目标页面名，
- *   点击后屏自己跳转，MCU 不需要发 EE B1 00。
- *
- * ★ 中文字符串：AC5 不允许字符串字面量含非 ASCII（#870-D），故屏上要显示的
- *   汉字一律用 GBK 的 \xNN 转义，见下面 S_* 宏。
+ * 控件归属：屏端 main.lua 已停用（换成空壳脚本，原版备份为 main.lua.原版备份.txt），
+ *   全部动态内容由 MCU 独占写入，控件号见 hmi_ids.h。
+ * 画面跳转：button_type=0 的按钮用 switch 属性由屏原生跳页；需要 MCU 干活的按钮为
+ *   button_type=1 + switch=""，只上报事件，跳页由 MCU 收到通知后发 EE B1 00 完成。
+ * 中文字符串：AC5 不允许字符串字面量含非 ASCII（#870-D），屏上要显示的汉字一律用
+ *   GBK 的 \xNN 转义，见下面 S_* 宏。
  */
 
 #include "dc_hmi.h"
@@ -44,14 +36,13 @@
 #include <string.h>
 
 extern measurement_t g_meas;
-/* 注：原来这里还 extern 了 g_new_frame 作波形门控；2026-10-12 起改为
- * uno.c 的采样环形缓冲（UNO_WaveTake），单个布尔标志会被多帧合并，
- * 是"波形一秒卡一次"的直接原因，故不再使用。 */
+/* 波形门控不用 g_new_frame：改用 uno.c 的采样环形缓冲 UNO_WaveTake，
+   单个布尔标志会把多帧合并成一点，造成波形卡顿。 */
 
 /* ============================================================
  * 0. 屏上要显示的汉字（GBK 转义，AC5 下不能直接写中文）
- *    ★ 每个宏都以 GBK 双字节结尾，绝不紧跟十六进制数字，
- *      避免 AC5 的 \x 转义"贪心多吃一位"（如 "\xE4" "0" 必须拆开写）。
+ *    每个宏都以 GBK 双字节结尾，绝不紧跟十六进制数字，
+ *    避免 AC5 的 \x 转义"贪心多吃一位"（如 "\xE4" "0" 必须拆开写）。
  * ============================================================ */
 #define S_PROBE_OK    "\xCC\xBD\xCD\xB7\xD2\xD1\xBD\xD3\xC8\xEB"        /* 探头已接入 */
 #define S_PROBE_NO    "\xCC\xBD\xCD\xB7\xCE\xB4\xBD\xD3\xC8\xEB"        /* 探头未接入 */
@@ -66,12 +57,12 @@ extern measurement_t g_meas;
 #define S_NO_REC      "\xD4\xDD\xCE\xDE\xB1\xA8\xBE\xAF\xBC\xC7\xC2\xBC" /* 暂无报警记录 */
 
 /* 趋势时段提示：记录时段 1 分钟 / 5 分钟 / 30 分钟
- *   （2 秒/点：30 点=1 分钟、150 点=5 分钟、900 点=30 分钟） */
+   （2 秒/点：30 点=1 分钟、150 点=5 分钟、900 点=30 分钟） */
 #define S_TRD_1MIN    "\xBC\xC7\xC2\xBC\xCA\xB1\xB6\xCE 1 \xB7\xD6\xD6\xD3"   /* 记录时段 1 分钟 */
 #define S_TRD_5MIN    "\xBC\xC7\xC2\xBC\xCA\xB1\xB6\xCE 5 \xB7\xD6\xD6\xD3"   /* 记录时段 5 分钟 */
 #define S_TRD_30MIN   "\xBC\xC7\xC2\xBC\xCA\xB1\xB6\xCE 30 \xB7\xD6\xD6\xD3"  /* 记录时段 30 分钟 */
 
-/* ---- 暂停/监护状态文案（本次新增，原指望 Lua，现由 MCU 写） ---- */
+/* ---- 暂停/监护状态文案（由 MCU 写，屏端 Lua 已停用） ---- */
 #define S_VALID_OK    "\xB2\xE2\xC1\xBF\xD3\xD0\xD0\xA7"               /* 测量有效 */
 #define S_VALID_PAUSE "\xD2\xD1\xD4\xDD\xCD\xA3"                       /* 已暂停   */
 #define S_CAP_ON      "\xC2\xF6\xB2\xAB\xB2\xA8\xB2\xC9\xBC\xAF\xD6\xD0" /* 脉搏波采集中 */
@@ -96,9 +87,9 @@ extern measurement_t g_meas;
 uint8_t g_paused = 0;                 /* 暂停监护（由屏通知翻转） */
 
 static uint8_t s_sound_on = 1;        /* 报警声音开关（设置页切换按钮） */
-static uint8_t s_bright_pct = 80;     /* 背光百分比（设置页滑块） */
-static int16_t s_spo2_low = 90;       /* SpO2 报警下限，可由设置页修改 */
-static int16_t s_pr_high  = 120;      /* 脉率报警上限，可由设置页修改 */
+static uint8_t s_bright_pct = 80;     /* 背光百分比，取值 10~100（设置页滑块） */
+static int16_t s_spo2_low = 90;       /* SpO2 报警下限，有效范围 70~99，可由设置页修改 */
+static int16_t s_pr_high  = 120;      /* 脉率报警上限，有效范围 60~200，可由设置页修改 */
 
 /* 监护时长（秒）：正常监护时每秒 +1，暂停时冻结 */
 static uint32_t s_monitor_sec = 0;
@@ -113,48 +104,52 @@ static int16_t  s_lim_pr_shown   = -1;
 /* 上次下发过的"暂停界面"状态（0xFF=还没下发过） */
 static uint8_t  s_pause_ui_shown = 0xFF;
 
-/* ---- 软 RTC（与血压工程同源做法：MCU 自己维护年月日时分秒） ----
-   ★ 起始时间：改这三行即可对上真实日期（上电后从 00:00:00 开始走）。 */
+/* ---- 软 RTC：MCU 自己维护年月日时分秒，上电后从 00:00:00 开始走 ----
+   RTC_INIT_* 指定起始日期，对上真实日期改这三行即可。 */
 #define RTC_INIT_YEAR   2026
 #define RTC_INIT_MON    1
 #define RTC_INIT_DAY    1
 
-/* ★ 两屏共用基准（定义在 merge_cfg.h 里 extern）。谁先初始化谁填。 */
+/* 两屏共用基准（merge_cfg.h 里 extern）。谁先初始化谁填。 */
 uint32_t g_rtc_epoch_tick = 0u;
 
 /* 屏 RTC 校准周期（毫秒）。
- *
- * ★ 2026-10-12 第三次改造：血压屏时钟也改成了屏内 RTC 控件（EE 81 驱动），
- *   两块屏走**完全相同**的显示机制。为了让两屏"秒跳变相位"也趋于一致，
- *   这里从原来的 5 分钟（300000）缩短到 **1000ms（每秒重发一次）**：
- *     - 一帧 EE 81 = 13 字节（本屏不开 CRC）≈ 1.1ms @115200 ⇒ 占用 ≈0.1%；
- *     - 每次重发都会把屏内 RTC 直接对齐到 MCU 当前秒，屏的跳秒时刻因此
- *       始终锚定在"收到指令后 1 秒"，与血压屏（同一条指令、同一时刻发出）一致。
- *   若哪天觉得串口太忙，可以把它调大（如 60000）——代价是两屏可能各自漂出
- *   最多几十毫秒的相位差，肉眼仍看不出，但"完全同源"就没那么严格了。 */
+ * 两块屏都用屏内 RTC 控件（EE 81 驱动），为使两屏"秒跳变相位"一致，这里每秒重发一次：
+ *   一帧 EE 81 = 13 字节（本屏不开 CRC）≈ 1.1ms @115200 ⇒ 占用 ≈0.1%；
+ *   每次重发都把屏内 RTC 对齐到 MCU 当前秒，屏的跳秒时刻锚定在"收到指令后 1 秒"，
+ *   与血压屏（同一时刻发出的同一指令）保持同源。
+ * 调大此值可减轻串口负担，代价是两屏可能各自漂出最多几十毫秒的相位差。 */
 #define SPO2_RTC_SYNC_MS     1000u
 
-/* ★ 血氧屏 RTC 补偿（单位：秒，可正可负，默认 0 不补偿）。
+/* 血氧屏 RTC 补偿（单位：秒，可正可负，默认 0 不补偿）。
    用法：把调试口打出的 MCU 时间与屏上时间逐秒对照——
-     屏比 MCU **快** n 秒  -> 填 -n（让屏少走 n 秒）
-     屏比 MCU **慢** n 秒  -> 填 +n
+     屏比 MCU 快 n 秒  -> 填 -n（让屏少走 n 秒）
+     屏比 MCU 慢 n 秒  -> 填 +n
    只影响写进屏的时间戳，不影响 MCU 内部走时（监护时长/报警时间不变）。
-   注意：两屏同源改造后一般不需要它；若血压屏仍固定差 1 秒，而血氧屏与
-   MCU 一致，则问题在血压屏侧，不要用这个宏去补。 */
+   两屏同源后一般不需要它；若血压屏固定差 1 秒而血氧屏一致，问题在血压屏侧，勿用此宏补。 */
 #define SPO2_RTC_OFFSET_SEC  0
 
 static uint16_t s_year = RTC_INIT_YEAR;
 static uint8_t  s_mon  = RTC_INIT_MON;
 static uint8_t  s_day  = RTC_INIT_DAY;
-static uint32_t s_sec_of_day = 0;          /* 0~86399 */
+static uint32_t s_sec_of_day = 0;          /* 当天已过秒数，0~86399 */
 static uint32_t s_rtc_last_tick = 0;       /* 上次推进用的 millis() 基准（保留余数） */
 static uint32_t s_rtc_last_sync = 0;       /* 上次同步到屏的时刻 */
+static uint32_t s_pr_last_valid_ms = 0;    /* 上次 F407 PR 有效时的 millis() */
+#if defined(DEBUG_PPG) && DEBUG_PPG
+volatile uint16_t g_pr_loss_streak = 0;    /* 诊断：连续丢 PR 的 on_uno_frame 次数 */
+volatile uint16_t g_uno_last_n = 0;        /* 诊断：上次 on_uno_frame 取到的采样数 */
+volatile int16_t  g_last_pr_write = 0;       /* 诊断：上次 on_uno_frame 实际写进 g_meas.pulse_rate 的值 */
+volatile uint8_t  g_last_pr_ok = 0;          /* 诊断：上次调用时 HMI_WaveGetPRDetail 的 ok */
+volatile int16_t  g_last_pr_est = 0;         /* 诊断：上次调用时 HMI_WaveGetPRDetail 的 est */
+volatile uint8_t  g_last_pr_valid = 0;       /* 诊断：上次调用时 valid 标志 */
+#endif /* DEBUG_PPG */
 
 /* ---- 报警记录 ---- */
 #define ALM_ROWS      4u
 #define ALM_HOLD_MS   3000u     /* 越限持续多久才记一条，防抖动 */
 #define ALM_REL_SPO2  92        /* 解除阈值（滞回）：>= 92 才解除 */
-#define ALM_REL_PR    115       /* <= 115 才解除 */
+#define ALM_REL_PR    115       /* 解除阈值（滞回）：<= 115 才解除 */
 
 typedef struct {
     char tm[9];                 /* "HH:MM:SS" */
@@ -164,23 +159,23 @@ typedef struct {
 } alm_rec_t;
 
 static alm_rec_t s_recs[ALM_ROWS];      /* [0] 为最新 */
-static uint8_t   s_rec_cnt = 0;
-static uint16_t  s_event_total = 0;
+static uint8_t   s_rec_cnt = 0;         /* 当前有效记录条数，0~ALM_ROWS */
+static uint16_t  s_event_total = 0;     /* 累计报警事件数（显示在记录页条数控件） */
 
 /* [0]=SpO2 [1]=脉率 */
-static uint8_t  s_alm_active[2];
-static uint8_t  s_alm_pending_on[2];
-static uint32_t s_alm_pending_at[2];
+static uint8_t  s_alm_active[2];        /* 该通道是否已处于报警态 */
+static uint8_t  s_alm_pending_on[2];    /* 该通道是否正在计时等待确认越限 */
+static uint32_t s_alm_pending_at[2];    /* 该通道越限计时的起点 millis() */
 
 /* 探头状态条上次写过的值（0xFF = 还没写过），只在变化时写，省 7 帧带宽 */
 static uint8_t  s_probe_shown = 0xFF;
 
 /* ============================================================
- * 1.5 屏文案刷新（这些过去指望屏端 Lua，现全部由 MCU 写）
+ * 1.5 屏文案刷新（这些文案全部由 MCU 写，屏端 Lua 已停用）
  * ============================================================ */
 
-/* 主界面右下角"监护时间 HH:MM:SS"
- *   force=0 时只在整秒变了才发帧（每秒调用 → 正常情况每秒 1 帧） */
+/* 主界面右下角"监护时间 HH:MM:SS"。
+   force=0 时只在整秒变了才发帧（每秒调用 → 正常情况每秒 1 帧）。 */
 static void hmi_show_duration(uint8_t force)
 {
     char b[32];
@@ -195,10 +190,9 @@ static void hmi_show_duration(uint8_t force)
     HMI_SetText(SCR_MAIN, MAIN_TXT_DURATION, b);
 }
 
-/* 暂停/恢复界面：按钮显隐 + 两句状态文案 + 弹窗提示语
- *   暂停 -> 藏起"暂停监护"(1)、亮出"继续监护"(6)
- *   恢复 -> 反过来
- *   force=1 用于刚切回主界面（屏已按默认属性重绘）之后强制重发一次 */
+/* 暂停/恢复界面：按钮显隐 + 两句状态文案 + 弹窗提示语。
+   暂停 -> 藏起"暂停监护"(1)、亮出"继续监护"(6)；恢复 -> 反过来。
+   force=1 用于刚切回主界面（屏已按默认属性重绘）之后强制重发一次。 */
 static void hmi_show_pause_ui(uint8_t force)
 {
     if (!force && s_pause_ui_shown == g_paused) return;
@@ -237,9 +231,9 @@ static void hmi_show_limits(uint8_t force)
     HMI_SetText(SCR_MAIN, MAIN_TXT_PR_LIM, b);
 }
 
-/* 设置页：亮度百分比 + 声音提示状态 + 进度条/滑块回写
- *   ★ 2026-10-10：进度条/滑块的回写原先由屏端 main.lua 的 refresh_setup() 做，
- *     现已停用 Lua，改由 MCU 写，否则切到设置页时滑块位置与百分比文本会不一致。 */
+/* 设置页：亮度百分比 + 声音提示状态 + 进度条/滑块/阈值输入框回写。
+   进度条/滑块/输入框的回写原先由屏端 main.lua 的 refresh_setup() 做，
+   Lua 停用后改由 MCU 写，否则切到设置页时滑块位置与百分比文本会不一致。 */
 static void hmi_show_setup(void)
 {
     char b[16];
@@ -273,7 +267,7 @@ static uint8_t rtc_weekday(uint16_t y, uint8_t m, uint8_t d)
 }
 
 /* 把 (y,m,d) 按 ±1 天平移。只用于 RTC 补偿在零点前后的借位/进位，
-   且**只作用于传进来的副本**，不改动模块内的 s_year/s_mon/s_day 状态。 */
+   且只作用于传进来的副本，不改动模块内的 s_year/s_mon/s_day 状态。 */
 static void rtc_day_step(uint16_t *Y, uint8_t *M, uint8_t *D, int delta)
 {
     static const uint8_t dim[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
@@ -349,16 +343,13 @@ void task_clock(void)
         }
     }
 
-    /* 每 SPO2_RTC_SYNC_MS 把 MCU 时间同步给屏（屏 RTC 有独立晶振，偶尔校准即可） */
+    /* 每 SPO2_RTC_SYNC_MS 把 MCU 时间同步给屏（屏 RTC 有独立晶振，此周期用于校准） */
     if ((now - s_rtc_last_sync) >= SPO2_RTC_SYNC_MS || s_rtc_last_sync == 0u) {
         s_rtc_last_sync = now;
         rtc_sync_to_screen();
     }
 
-    /* ---- 监护时长：正常监护时随秒累加，暂停时冻结 ----
-       这就是原来"监护时间一直停在 1 秒"的正解：
-       过去靠屏端 Lua 的定时器累加，而 start_timer(...,repeat=1) 只触发一次；
-       现在改由 MCU 每秒写 txt_duration(21)。 */
+    /* ---- 监护时长：正常监护时随秒累加，暂停时冻结，写主界面 txt_duration(21) ---- */
     if (!g_paused) s_monitor_sec += add;
     hmi_show_duration(0u);
 }
@@ -376,7 +367,8 @@ void spo2_rtc_get(uint16_t *y, uint8_t *mon, uint8_t *day,
 }
 
 /* 用户在血压屏"时间设置"页改完时间后，必须把血氧侧软 RTC 一起对齐，
-   否则两块屏会各走各的（改一次就差几小时）。 */
+   否则两块屏会各走各的（改一次就差几小时）。
+   参数越界（年<2000、月>12、日>31、时>23、分/秒>59）时直接返回不改。 */
 void spo2_rtc_set(uint16_t y, uint8_t mon, uint8_t day,
                   uint8_t hh, uint8_t mi, uint8_t ss)
 {
@@ -415,10 +407,19 @@ static void alm_push_rows(void)
 
     snprintf(cnt, sizeof(cnt), "%u", (unsigned)s_event_total);
     HMI_SetText(SCR_ALARM, ALM_TXT_EVENT_CNT, cnt);
-    HMI_SetText(SCR_ALARM, ALM_TXT_EMPTY, (s_rec_cnt == 0u) ? S_NO_REC : "");
+
+    /* 空态提示"暂无报警记录"不能仅清空文本，否则背景色块仍遮住表格线。
+       有记录时隐藏整个控件（文字+背景一起消失）；无记录时显示并写文字。 */
+    if (s_rec_cnt == 0u) {
+        HMI_SetText(SCR_ALARM, ALM_TXT_EMPTY, S_NO_REC);
+        HMI_SetControlVisible(SCR_ALARM, ALM_TXT_EMPTY, 1u);
+    } else {
+        HMI_SetControlVisible(SCR_ALARM, ALM_TXT_EMPTY, 0u);
+    }
 }
 
-/* 产生一条记录（插到最前，只保留 4 条） */
+/* 产生一条记录（插到最前，只保留 ALM_ROWS 条）：
+   who: 0=SpO2 记"高"级别，1=脉率记"中"级别；val: 触发时的测量值 */
 static void alm_emit(uint8_t who, int16_t val)
 {
     char tm[9], ev[26];
@@ -448,7 +449,9 @@ static void alm_emit(uint8_t who, int16_t val)
     if (s_sound_on) HMI_Beep(200u);      /* 报警提示音（声音开关打开时） */
 }
 
-/* 单个通道的越限判定：持续 hold 才记一条；回到解除阈值才解除 */
+/* 单个通道的越限判定（滞回）：
+   bad=1 且未在报警态时先计时，持续 ALM_HOLD_MS 才记一条；
+   bad=0 且当前在报警态、且 rel_ok=1 时才解除。 */
 static void alm_watch(uint8_t who, uint8_t bad, int16_t val, uint8_t rel_ok)
 {
     uint32_t now = millis();
@@ -473,7 +476,7 @@ static void alm_update(void)
 {
     uint8_t valid = g_meas.result_valid;
 
-    /* 暂停监护期间不做报警判定（数值已显示 --），状态文案回到"正常" */
+    /* 暂停监护期间不做报警判定（数值显示冻结值），状态文案回到"正常" */
     if (g_paused) {
         HMI_SetText(SCR_MAIN, MAIN_TXT_SPO2_ST, S_NORMAL);
         HMI_SetText(SCR_MAIN, MAIN_TXT_PR_ST,   S_NORMAL);
@@ -508,18 +511,11 @@ static void alm_clear(void)
 /* ============================================================
  * 4. 波形
  * ============================================================
- * ★ 2026-10-12 重写：把"收到一帧推一个点"改成"把中断里积压的采样全部取走并推平"。
+ * uno.c 在中断里把每一个 IR 采样写入环形缓冲；这里每次把积压的采样全部取走并推平，
+ * 而不是"收到一帧只推一个点"。主循环被别的任务（如血压屏 9600 波特率阻塞发送）
+ * 占住时也不会丢点，波形横向采样比例恒定，不会出现"一秒卡一次、脉冲间距忽宽忽窄"。
  *
- * 原实现的 bug（现象：波形一秒卡一次、脉冲间距忽宽忽窄）：
- *   旧代码靠 g_new_frame 这一个布尔标志判断"有新帧"，主循环每轮只推 1 个点。
- *   而 main() 是单线程事件循环 —— 血压屏走 9600 波特率、发送是死等 TXE 的阻塞轮询，
- *   仅"时钟广播"每秒就要背靠背发 10 帧约 340 字节 ≈ 350ms。这段停顿期间到达的
- *   多个 UNO 帧被合并成 1 个波形点：波形先停住，然后猛地跳一格 = "一秒卡一次"；
- *   同时横向采样比例随负载变化，脉冲间距忽宽忽窄 = "不直观"。
- *
- * 现在：uno.c 在中断里把**每一个** IR 采样写入环形缓冲；这里每次把积压的全部取走，
- *   主循环偶尔被别的任务占住也不会丢点，波形横向比例恒定。
- *   （血压屏的 350ms 阻塞也一并改成了分页节流，见 app_bp.c 的 clock_pace_step。） */
+ * 调用时机：收到 UNO 帧时由上层调用，约 90 次/s；非中断上下文。 */
 void on_uno_frame(void)
 {
     int32_t  w[16];                  /* 单次最多取走的点数（栈上 64B；栈总容量仅 1KB） */
@@ -532,39 +528,74 @@ void on_uno_frame(void)
     }
 
     n = UNO_WaveTake(w, (uint16_t)(sizeof(w) / sizeof(w[0])));
+#if defined(DEBUG_PPG) && DEBUG_PPG
+    g_uno_last_n = n;                /* 诊断：串口可观察本次取到几个点 */
+#endif
     if (n == 0u) return;             /* 没新采样：直接返回，开销可忽略 */
 
-    valid = g_meas.probe_state;      /* 0 = 探头未接入/算法未出值 -> 屏上画平线 */
+    /* UNO 的 SpO2 算法可能短暂返回 0（pl[8]=0），但 IR 波形/HR 仍有效。
+       若仅用 probe_state(Spo2!=0) 作 valid，会反复触发 ppg_reset 使 PR 掉 0。
+       故取：SpO2 有效 或 UNO 原算 HR>0 时都认为 IR 波形可用，继续跑峰检。 */
+    valid = (g_meas.probe_state != 0u) || (g_uno_hr > 0u);
     for (i = 0; i < n; i++) HMI_WavePush(w[i], valid);
 
-    /* ★ 2026-10-13：用 F407 端 IR 波形重算的 PR 与真实 SQI 覆盖 UNO 值。
-     *   PR 走峰值检测（动态阈值 + 最小峰距 250ms），噪声不会被计成 208；
-     *   SQI 走峰-峰一致性，替代原来的固定 100。信号丢失时 PR 回落到 0。 */
+    /* 用 F407 端 IR 波形重算的 PR 与真实 SQI 覆盖 UNO 值：PR 走峰值检测
+       （动态阈值 + 最小峰距 250ms，噪声不会被计成 208），SQI 走峰-峰一致性。
+       pr_ok 因抖动/边界短暂变 0 时，保持最后一次有效 PR，超过 3s 才回落到 0，
+       避免屏上/串口 PR 跟着跳 0。 */
+#if defined(DEBUG_PPG) && DEBUG_PPG
+    g_last_pr_valid = valid;
+#endif
     if (valid) {
-        int16_t pr = HMI_WaveGetPR();
-        g_meas.pulse_rate    = (pr > 0) ? pr : 0;
+        uint8_t  ok;
+        int16_t  est;
+        HMI_WaveGetPRDetail(&ok, &est, NULL);
+#if defined(DEBUG_PPG) && DEBUG_PPG
+        g_last_pr_ok  = ok;
+        g_last_pr_est = est;
+#endif
+        /* 峰检偶发"假峰"（两峰过近/单峰被劈开）会吐出 226 这类生理不可能的 PR。
+           加生理上限保护（<=220）挡掉假峰：超限帧当无效丢弃，g_meas.pulse_rate
+           保持上次有效值，下一帧正常即自动恢复，不清零。 */
+        if (ok && est > 0 && est <= 220) {
+            g_meas.pulse_rate     = est;
+            s_pr_last_valid_ms    = millis();
+#if defined(DEBUG_PPG) && DEBUG_PPG
+            g_pr_loss_streak      = 0;
+#endif
+        } else {
+#if defined(DEBUG_PPG) && DEBUG_PPG
+            g_pr_loss_streak++;
+#endif
+            /* 短暂丢峰不立刻清零，避免屏上 PR 闪烁 */
+            if ((int32_t)(millis() - s_pr_last_valid_ms) > 3000) {
+                g_meas.pulse_rate = 0;
+            }
+        }
         g_meas.signal_quality = HMI_WaveGetSQI();
     }
+#if defined(DEBUG_PPG) && DEBUG_PPG
+    g_last_pr_write = g_meas.pulse_rate;
+#endif
 }
 
 /* ============================================================
- * 5. 数值 + 状态刷新（每 400ms）
- *    暂停时不再"什么都不刷"：数值显示 --，状态文案与时长继续维持，
- *    避免屏上残留暂停前的旧数字。
+ * 5. 数值 + 状态刷新（每 400ms；由 task_hmi_value 调用，非中断上下文）
+ *    暂停时数值显示冻结值（不再清成 --），状态文案与时长继续维持，
+ *    避免屏上残留暂停前的旧数字或露出中断写入的 0。
  * ============================================================ */
 static uint32_t t_val = 0;
 
-/* 暂停时冻结显示的“最后一次有效”血氧/脉率：仅在“未暂停且数据有效”时刷新，
-   g_paused 期间保持不变，从而让主界面（及趋势页最近值）在暂停时保留暂停前数值，
-   恢复后再随实测数据变化。 */
+/* 暂停时冻结显示的"最后一次有效"血氧/脉率：仅在"未暂停且数据有效"时刷新，
+   g_paused 期间保持不变，使主界面（及趋势页最近值）在暂停时保留暂停前数值，
+   恢复后再随实测数据变化。-1 表示从未有过有效值。 */
 static int16_t s_frozen_spo2 = -1;
 static int16_t s_frozen_pr  = -1;
+static uint8_t s_frozen_sqi = 0;    /* 暂停时冻结显示的信号质量（最后一次有效值） */
 
-/* 切回某画面后，屏会按控件默认属性重绘，需要把 MCU 负责的内容再补几次。
-   s_resync_round>0 表示"还要重发几轮"，避免和屏重绘抢时序。
-   ★ 2026-10-10 起屏端 main.lua 已停用（它原先会用自己的 paused/monitor_sec
-     覆盖 12/20/21 等控件），这里同时加了一道"周期性自愈补发"，
-     保证任何一次覆盖/丢失都能在 RESYNC_SELF_HEAL_MS 内自动收敛回来。 */
+/* 切回某画面后屏会按控件默认属性重绘，需要把 MCU 负责的内容再补几次。
+   s_resync_round>0 表示还要重发几轮，避免和屏重绘抢时序；
+   另有周期性自愈补发（RESYNC_SELF_HEAL_MS），保证任何一次覆盖/丢失都能自动收敛。 */
 static uint8_t  s_resync_round = 0;
 static uint32_t s_resync_at    = 0;
 static uint8_t  s_resync_alm   = 0;   /* 本轮补发是否连报警记录页一起补 */
@@ -608,10 +639,11 @@ void task_hmi_value(void)
     if (now < t_val) return;
     t_val = now + 400u;
 
-    /* 仅在“未暂停且数据有效”时刷新冻结缓存；暂停期间缓存保持不变 */
+    /* 仅在"未暂停且数据有效"时刷新冻结缓存；暂停期间缓存保持不变 */
     if (!g_paused && g_meas.result_valid) {
         s_frozen_spo2 = (int16_t)g_meas.spo2;
         s_frozen_pr  = (int16_t)g_meas.pulse_rate;
+        s_frozen_sqi = g_meas.signal_quality;
     }
 
     if (g_paused) {
@@ -630,7 +662,11 @@ void task_hmi_value(void)
         snprintf(s[0], sizeof(s[0]), "%d", (int)g_meas.spo2);
         snprintf(s[1], sizeof(s[1]), "%d", (int)g_meas.pulse_rate);
     }
-    snprintf(s[2], sizeof(s[2]), "%d", (int)g_meas.signal_quality);
+    /* 暂停时信号质量也取冻结值：暂停期间 USART6 中断里的 UNO_ParseByte 仍在跑，
+       会按 pl[8] 把 g_meas.signal_quality 写成 0/100（UNO SpO2 短暂返回 0 时即为 0），
+       导致暂停屏露出 0。用冻结值后保留暂停前最后一次有效质量。 */
+    snprintf(s[2], sizeof(s[2]), "%d",
+             (int)(g_paused ? s_frozen_sqi : g_meas.signal_quality));
 
     HMI_SetText(SCR_MAIN, MAIN_TXT_SPO2,    s[0]);
     HMI_SetText(SCR_MAIN, MAIN_TXT_PR,      s[1]);
@@ -664,17 +700,11 @@ void task_hmi_value(void)
 /* ============================================================
  * 6. 趋势：历史曲线
  *
- * ★ 2026-10-10 修复"趋势曲线是一条死直线，数据是死的"
- *   根因：屏 趋势.tft 里两个 historygraph 的 sample_data_foramt="0"
- *         = UINT8（每点 1 字节），而这里用的是 HMI_HistorySampleU16()，
- *         每调用一次发 2 字节（EE B1 60 <screen:16> <ctrl:16> <value:16>）。
- *         屏按 1 字节解析时只吃掉高字节 —— SpO2=97 即 0x0061，屏只取 0x00，
- *         于是曲线恒为 0、贴着量程下限画成一条直线；残余的 0x61 也不是 0xEE，
- *         被当噪声丢掉。
- *   修法：把 趋势.tft 的 sample_data_foramt 改成 2（UINT16），与下面的
- *         HMI_HistorySampleU16() 对齐（改屏工程需在 VisualTFT 重新编译下载）。
- *   顺带：采样节奏 60s -> 2s（屏 sample_cycle 也同步改成 2），
- *         三个时段按钮由 30分钟/2小时/8小时 改成 1分钟/5分钟/30分钟。
+ * 屏 趋势.tft 里两个 historygraph 的 sample_data_foramt 必须是 2（UINT16），
+ *   与下面的 HMI_HistorySampleU16() 对齐：若配成 0（UINT8），屏按 1 字节解析，
+ *   只吃掉高字节 —— SpO2=97 即 0x0061，屏只取 0x00，曲线恒为 0 成一条直线。
+ * 采样节奏 2s，屏 sample_cycle 也要同步改成 2。
+ * 三个时段按钮为 1 分钟 / 5 分钟 / 30 分钟。
  * ============================================================ */
 #define TREND_PERIOD_MS   2000u   /* 落点间隔，必须与 .tft 的 sample_cycle 一致 */
 #define TREND_SAMPLE_SEC  2u      /* 一个点代表多少秒，用于时间刻度换算 */
@@ -683,10 +713,10 @@ static uint32_t t_trd = 0;
 
 static uint16_t s_trd_count = 150u;   /* 当前窗口点数：30 / 150 / 900 */
 static uint8_t  s_trend_sel = 2u;     /* 1=1分钟 2=5分钟 3=30分钟（按钮选中态） */
-static uint32_t s_trd_min_shown = 0xFFFFFFFFu;
+static uint32_t s_trd_min_shown = 0xFFFFFFFFu;  /* 上次写进屏的刻度分钟值，只有整分才重写 */
 
 /* 趋势页的"非曲线"文案：左列最近值 10/11 + 曲线下方时间刻度 15..18。
- * force=1 无条件整轮重发（切到趋势页 / 切换时段后屏会按默认属性重绘，必须补）。 */
+   force=1 无条件整轮重发（切到趋势页 / 切换时段后屏会按默认属性重绘，必须补）。 */
 static void trend_show_labels(uint8_t force)
 {
     /* 刻度 i 距"现在"的偏移 = 窗口秒数 * num[i] / 3（0 号在最左=最早） */
@@ -754,23 +784,16 @@ void task_hmi_trend(void)
 /* ============================================================
  * 7. 屏按键 / 滑块 / 文本 回调（由 dc_hmi.c 的 HMI_Poll() 调进来）
  *
- * ★ 2026-10-10 重要修正 —— 三类按钮的配置约定（依据官方例程
- *   Project_DEMO_800480M070 与 VisualTFT 内 button_type 枚举）：
- *
- *   button_type  OPTIONS="切换画面;开关描述;自定义按键;自定义指令;弹出菜单;" ENUMS="0;1;2;3;4;"
- *     =0 切换画面：屏按 switch 属性自己跳页；本工程实测**不会**可靠上报按键事件
- *     =1 开关描述：只上报事件、不跳页（switch 必须留空）——需要 MCU 干活的按钮都用它
- *   button_style OPTIONS="瞬变;开关;置位;复位;长按;延时;" ENUMS="0;1;2;3;4;5;"
- *     =0 瞬变（点动按钮用这个）/ =1 开关（切换型按钮用这个）
- *   notify_disable OPTIONS="否;是" ENUMS="1;0"   -> 0 = 上传按键事件
- *
- *   本工程 tftprj 里 DeviceControlNotify="3" = "按下和弹起都上报"，
- *   所以**一次点击会收到两帧**（state=1 按下、state=0 弹起）——
- *   凡是"翻转型"动作都必须只在 state==1 时执行，否则一次点击会翻转两次（净变化为 0）。
- *
- *   跳页分工：btn_confirm_pause / btn_confirm_clear 已改成 button_type=1、switch="",
- *   所以**跳页必须由 MCU 收到通知后自己发 EE B1 00**；取消/返回按钮仍是
- *   button_type=0 原生跳页，作为"卡在弹窗页"的兜底出口。
+ * 按钮配置约定（依据官方例程与 VisualTFT 内 button_type 枚举）：
+ *   button_type  0=切换画面（屏按 switch 属性自己跳页）/ 1=开关描述（只上报事件、不跳页）
+ *   button_style 0=瞬变（点动按钮）/ 1=开关（切换型按钮）
+ *   notify_disable 0=上传按键事件
+ *   本工程 tftprj 里 DeviceControlNotify="3" = 按下和弹起都上报，
+ *   所以一次点击会收到两帧（state=1 按下、state=0 弹起）——
+ *   凡是翻转型动作都必须只在 state==1 时执行，否则一次点击会翻转两次（净变化为 0）。
+ *   跳页分工：btn_confirm_pause / btn_confirm_clear 是 button_type=1 + switch=""，
+ *   跳页由 MCU 收到通知后自己发 EE B1 00；取消/返回按钮仍是 button_type=0 原生跳页，
+ *   作为"卡在弹窗页"的兜底出口。
  * ============================================================ */
 
 /* 安排若干轮"MCU 负责内容"的补发（切页/跳页后屏会按控件默认属性重绘，必须补） */
@@ -782,8 +805,7 @@ static void request_resync(uint8_t rounds, uint16_t delay_ms)
 
 /* 切换趋势窗口：count = 一屏显示的采样点数（EE B1 63）。
  *   2 秒/点 -> 30 点=1 分钟、150 点=5 分钟、900 点=30 分钟（屏缓存 1024 点）。
- *   三个时段按钮是"开关型"（button_style=1），选中态原先由屏端 Lua 的
- *   refresh_trend() 设置；Lua 已停用，改由 MCU 用 EE B1 10 <u8> 回写。 */
+ *   三个时段按钮是"开关型"（button_style=1），选中态由 MCU 用 EE B1 10 <u8> 回写。 */
 static void set_trend_range(uint16_t count, const char *tip)
 {
     s_trd_count = count;
@@ -804,7 +826,7 @@ static void set_trend_range(uint16_t count, const char *tip)
 
 void NotifyButton(uint16_t screen_id, uint16_t ctrl_id, uint8_t state)
 {
-    /* ★ 必须先判边沿：DeviceControlNotify=3 -> 一次点击上报"按下"与"弹起"两帧。
+    /* 必须先判边沿：DeviceControlNotify=3 -> 一次点击上报"按下"与"弹起"两帧。
        若把翻转型动作放在边沿判断之前，声音开关这类按钮会被翻转两次（等于没反应）。 */
     if (!state) return;                   /* 只处理按下沿 */
 
@@ -816,7 +838,7 @@ void NotifyButton(uint16_t screen_id, uint16_t ctrl_id, uint8_t state)
     }
 
     if (screen_id == SCR_MAIN && ctrl_id == MAIN_BTN_RESUME) {
-        /* "继续监护"：button_type=1(只上报) + switch=""，跳页不需要（本来就在主界面） */
+        /* "继续监护"：button_type=1(只上报) + switch=""，不需跳页（本来就在主界面） */
         g_paused = 0;
         hmi_show_pause_ui(1u);
         return;
@@ -824,8 +846,17 @@ void NotifyButton(uint16_t screen_id, uint16_t ctrl_id, uint8_t state)
 
     if (screen_id == SCR_PAUSE && ctrl_id == PAU_BTN_CONFIRM) {
         /* 弹窗"确认"：在暂停与恢复之间翻转。
-           该按钮已改成 button_type=1 + switch=""，屏**不会**自己跳页，
+           该按钮已改成 button_type=1 + switch=""，屏不会自己跳页，
            所以这里必须由 MCU 跳回主界面；先跳页再补发文案（屏重绘会清掉 MCU 写的内容）。 */
+        /* 进入暂停的瞬间冻结此刻的有效读数：原冻结值由 400ms 刷新任务从 g_meas.pulse_rate
+           取，可能正好采到峰检的瞬间假峰（如 226 这类生理不可能的 PR）而被冻结。
+           这里在翻转 g_paused 之前直接快照当前读数，仅当数据有效才覆盖（否则保留上次
+           有效值），保证暂停屏显示的正是"点暂停那一刻"的真实数据。 */
+        if (g_paused == 0u && g_meas.result_valid) {
+            s_frozen_spo2 = (int16_t)g_meas.spo2;
+            s_frozen_pr   = (int16_t)g_meas.pulse_rate;
+            s_frozen_sqi  = g_meas.signal_quality;
+        }
         g_paused = (uint8_t)(!g_paused);
         HMI_SetScreen(SCR_MAIN);
         request_resync(4u, 120u);
@@ -847,11 +878,7 @@ void NotifyButton(uint16_t screen_id, uint16_t ctrl_id, uint8_t state)
     }
 }
 
-/* 画面切换回调。
- * ★ 2026-10-10 修正：dc_hmi.c 里 HMI_Poll() 的帧长门限原来是 11 字节，
- *   而"画面切换通知"帧只有 9 字节（EE B1 01 <screen:16> FF FC FF FF），
- *   会被整条丢掉 —— 本函数因此从来没被调用过。门限已改为 9。
- * 屏每次跳转都会按控件默认属性重绘，所以这里安排"MCU 负责内容"的整体补发。 */
+/* 画面切换回调。屏每次跳转都会按控件默认属性重绘，这里安排"MCU 负责内容"的整体补发。 */
 void NotifyScreen(uint16_t screen_id)
 {
     if (screen_id == SCR_MAIN || screen_id == SCR_PAUSE || screen_id == SCR_SETUP ||
@@ -863,9 +890,9 @@ void NotifyScreen(uint16_t screen_id)
 }
 
 /* 设置页滑块：面板亮度。
- *   ★ 这里**只**写亮度百分比文本，不调用 hmi_show_setup()：
- *     hmi_show_setup() 会把滑块/进度条的值写回屏，若屏对"程序设值"也回通知，
- *     就会形成 滑块通知 -> 设滑块 -> 再通知 的死循环。文本控件无此风险。 */
+   这里只写亮度百分比文本，不调用 hmi_show_setup()：
+     hmi_show_setup() 会把滑块/进度条的值写回屏，若屏对"程序设值"也回通知，
+     就会形成 滑块通知 -> 设滑块 -> 再通知 的死循环。文本控件无此风险。 */
 void NotifySlider(uint16_t screen_id, uint16_t ctrl_id, uint32_t value)
 {
     char b[16];
@@ -884,7 +911,8 @@ void NotifySlider(uint16_t screen_id, uint16_t ctrl_id, uint32_t value)
     HMI_SetBackLight((uint8_t)((100u - value) * 255u / 100u));
 }
 
-/* 设置页文本输入：SpO2 下限 / 脉率上限 -> 更新 MCU 的报警阈值 */
+/* 设置页文本输入：SpO2 下限 / 脉率上限 -> 更新 MCU 的报警阈值。
+   越界值直接丢弃（SpO2 限 70~99、脉率限 60~200）；更新后立即重写主界面限值文案。 */
 void NotifyText(uint16_t screen_id, uint16_t ctrl_id, const uint8_t *str, uint16_t len)
 {
     char b[12];
@@ -915,7 +943,7 @@ void app_hmi_init(void)
     alm_push_rows();
     s_probe_shown = 0xFF;      /* 强制下一次刷新把 91 写一遍 */
 
-    /* 初始背光 80%（与屏 Lua 的设置页默认值一致） */
+    /* 初始背光 80%（与设置页默认值一致，EE 60 参数反相） */
     HMI_SetBackLight((uint8_t)((100u - 80u) * 255u / 100u));
 
     /* 趋势：先确保两条曲线处于"允许采样"状态（屏属性 sample_enable=1 已是允许，
@@ -932,10 +960,9 @@ void app_hmi_init(void)
     { uint8_t st = g_meas.probe_state ? 1u : 0u; s_probe_shown = st; }
 
     /* 设置屏 RTC：马上同步一次（软 RTC 从 RTC_INIT_* 开始走）。
-     *
-     * ★ 关键：这里必须把"软 RTC 基准"落到两块屏共用的 g_rtc_epoch_tick 上。
-     *   app_hmi_init() 在 app_init()（血压侧）之前调用，以前两边各记各的基准，
-     *   导致血压软 RTC 的 0 秒比血氧侧晚 Δ（本函数要刷几十帧屏指令，Δ 可达秒级），
+     * 这里必须把"软 RTC 基准"落到两块屏共用的 g_rtc_epoch_tick 上：
+     *   app_hmi_init() 在 app_init()（血压侧）之前调用，若两边各记各的基准，
+     *   血压侧 0 秒会比血氧侧晚 Δ（本函数要刷几十帧屏指令，Δ 可达秒级），
      *   表现为"血压屏时间稳定比血氧屏慢 Δ 秒"。共用同一个 tick 后，
      *   两边 floor((tick-base)/1000) 完全一致，Δ 恒为 0。 */
     if (g_rtc_epoch_tick == 0u) g_rtc_epoch_tick = millis();

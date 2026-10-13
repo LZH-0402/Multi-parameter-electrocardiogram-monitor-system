@@ -1,18 +1,15 @@
 /*!
  * \file dc_hmi.c
- * \brief 大彩串口屏下行驱动实现（SPL / USART2 移植版）
+ * \brief 大彩串口屏下行驱动 + 上行通知解析（SPL 版）
  *
- * 所有指令字节均取自 M 系列开发包 hmi_driver.c（路径见各函数注释），
- * 并经本机 VisualTFT 的 InstructConfig.xml 交叉核对 EE/B1/10 部分。
+ * 帧格式：EE <cmd> [sub] <screen:16> <ctrl:16> <param...> FF FC FF FF
+ *   16/32 位参数高字节在前；字符串不带 '\0'。
+ * 指令字节取自 M 系列开发包 hmi_driver.c（路径见各函数注释），
+ *   并经本机 VisualTFT 的 InstructConfig.xml 交叉核对。
  *
- * 帧:   EE <cmd> [sub] <screen:16> <ctrl:16> <param...> FF FC FF FF
- * 注意: 16/32 位参数高字节在前；字符串不带 '\0'
- *
- * 移植说明（相对原 HAL 版）：
- *   - 删除 #include "stm32f4xx_hal.h" 与 extern UART_HandleTypeDef huart3
- *   - 底部 hmi_tx() 的实际实现改到 usart.c（用 USART2 发送），此处的弱定义仅占位
- *   - 新增 HMI_Init()（屏无需握手，这里留作扩展）
- *   其余拼帧 / 曲线 / 批量 / 通知解析逻辑一字未改。
+ * 依赖：发送由 usart.c 用 USART2（PA2 TX / PA3 RX，115200）完成；
+ *   本文件底部的 hmi_tx() 仅为弱定义占位，未链接 usart.c 时发送为空。
+ * 硬件：大彩串口屏，出厂默认 RS232 电平，接 TTL 前需短接 J5 或经 SP3232 转换。
  */
 
 #include "dc_hmi.h"
@@ -39,26 +36,26 @@ __weak void hmi_tx(const uint8_t *p, uint16_t n)
 /* ============================================================
  * 2. 帧组装原语
  * ============================================================ */
-static uint8_t  s_tx[HMI_TX_BUF_SIZE];
-static uint16_t s_len;
+static uint8_t  s_tx[HMI_TX_BUF_SIZE];   /* 待发帧缓冲 */
+static uint16_t s_len;                   /* 当前帧已填入字节数 */
 
 static void put8(uint8_t v)
 {
     if (s_len < HMI_TX_BUF_SIZE) s_tx[s_len++] = v;
 }
-static void put16(uint16_t v)
+static void put16(uint16_t v)            /* 大端：高字节在前 */
 {
     put8((uint8_t)(v >> 8));
     put8((uint8_t)(v & 0xFF));
 }
-static void put32(uint32_t v)
+static void put32(uint32_t v)            /* 大端：高字节在前 */
 {
     put8((uint8_t)(v >> 24));
     put8((uint8_t)(v >> 16));
     put8((uint8_t)(v >> 8));
     put8((uint8_t)(v & 0xFF));
 }
-static void putstr(const char *s)
+static void putstr(const char *s)        /* 写入字符串，不含结尾 '\0' */
 {
     while (s && *s) put8((uint8_t)*s++);
 }
@@ -79,7 +76,7 @@ static void end_cmd(void)     /* 帧尾 FF FC FF FF */
  *    通用写法是 EE B1 10 <screen> <ctrl> <数据>，文本/按钮/进度条/滑块都走它
  * ============================================================ */
 
-/* 源: hmi_driver.c:835  EE B1 00 <screen> */
+/* 源: hmi_driver.c  EE B1 00 <screen> */
 void HMI_SetScreen(uint16_t screen_id)
 {
     begin_cmd();
@@ -89,7 +86,7 @@ void HMI_SetScreen(uint16_t screen_id)
 }
 
 /* 源: hmi_driver.c  EE B1 01（查询当前画面，屏会应答 EE B1 01 <画面:16> FF FC FF FF）
- * 这是唯一能一次性判定“接线 + 波特率 + 帧格式”三项都正确的指令：
+ * 这是唯一能一次性判定“接线 + 波特率 + 帧格式”三项均正确的指令：
  * 只要屏有应答，链路就是通的。 */
 void HMI_GetScreen(void)
 {
@@ -98,7 +95,7 @@ void HMI_GetScreen(void)
     end_cmd();
 }
 
-/* 源: hmi_driver.c:929  EE B1 10 <screen> <ctrl> <字符串> */
+/* 源: hmi_driver.c  EE B1 10 <screen> <ctrl> <字符串> */
 void HMI_SetText(uint16_t screen_id, uint16_t ctrl_id, const char *str)
 {
     begin_cmd();
@@ -108,8 +105,8 @@ void HMI_SetText(uint16_t screen_id, uint16_t ctrl_id, const char *str)
     end_cmd();
 }
 
-/* 源: hmi_driver.c:949  EE B1 07 <screen> <ctrl> <sign> <0x80|digits> <u32>
- * 注意：要求屏固件 >= 908。若写完没反应，请改用 HMI_SetText() 自己 sprintf */
+/* 源: hmi_driver.c  EE B1 07 <screen> <ctrl> <sign> <0x80|digits> <u32>
+ * digits = 小数位数。要求屏固件 >= 908；若写完没反应，改用 HMI_SetText() 自行 sprintf。 */
 void HMI_SetTextInt(uint16_t screen_id, uint16_t ctrl_id, int32_t value, uint8_t digits)
 {
     uint8_t sign = (value < 0) ? 1 : 0;
@@ -124,7 +121,7 @@ void HMI_SetTextInt(uint16_t screen_id, uint16_t ctrl_id, int32_t value, uint8_t
     end_cmd();
 }
 
-/* 源: hmi_driver.c:999  EE B1 10 <screen> <ctrl> <u32> */
+/* 源: hmi_driver.c  EE B1 10 <screen> <ctrl> <u32> */
 void HMI_SetProgress(uint16_t screen_id, uint16_t ctrl_id, uint32_t value)
 {
     begin_cmd();
@@ -134,7 +131,7 @@ void HMI_SetProgress(uint16_t screen_id, uint16_t ctrl_id, uint32_t value)
     end_cmd();
 }
 
-/* 源: hmi_driver.c:913  EE B1 10 <screen> <ctrl> <u8> */
+/* 源: hmi_driver.c  EE B1 10 <screen> <ctrl> <u8> */
 void HMI_SetButton(uint16_t screen_id, uint16_t ctrl_id, uint8_t state)
 {
     begin_cmd();
@@ -144,7 +141,7 @@ void HMI_SetButton(uint16_t screen_id, uint16_t ctrl_id, uint8_t state)
     end_cmd();
 }
 
-/* 源: hmi_driver.c:881  EE B1 03 <screen> <ctrl> <visible>
+/* 源: hmi_driver.c  EE B1 03 <screen> <ctrl> <visible>
  * visible=1 显示 / 0 隐藏。用于"暂停监护 ↔ 继续监护"两个叠放按钮的切换。 */
 void HMI_SetControlVisible(uint16_t screen_id, uint16_t ctrl_id, uint8_t visible)
 {
@@ -155,7 +152,7 @@ void HMI_SetControlVisible(uint16_t screen_id, uint16_t ctrl_id, uint8_t visible
     end_cmd();
 }
 
-/* 源: hmi_driver.c:897  EE B1 04 <screen> <ctrl> <enable> */
+/* 源: hmi_driver.c  EE B1 04 <screen> <ctrl> <enable> */
 void HMI_SetControlEnable(uint16_t screen_id, uint16_t ctrl_id, uint8_t enable)
 {
     begin_cmd();
@@ -169,7 +166,7 @@ void HMI_SetControlEnable(uint16_t screen_id, uint16_t ctrl_id, uint8_t enable)
  * 4. 实时曲线 graph（PPG 波形）
  * ============================================================ */
 
-/* 源: hmi_driver.c:1236  EE B1 33 <screen> <ctrl> <channel> */
+/* 源: hmi_driver.c  EE B1 33 <screen> <ctrl> <channel> */
 void HMI_GraphClear(uint16_t screen_id, uint16_t ctrl_id, uint8_t channel)
 {
     begin_cmd();
@@ -179,7 +176,7 @@ void HMI_GraphClear(uint16_t screen_id, uint16_t ctrl_id, uint8_t channel)
     end_cmd();
 }
 
-/* 源: hmi_driver.c:1218  EE B1 32 <screen> <ctrl> <channel> <len:16> <data...>
+/* 源: hmi_driver.c  EE B1 32 <screen> <ctrl> <channel> <len:16> <data...>
  * 每个数据点 1 字节，取值必须落在控件配置的 start_value~end_value（本工程 0~255） */
 void HMI_GraphAddData(uint16_t screen_id, uint16_t ctrl_id, uint8_t channel,
                       const uint8_t *data, uint16_t len)
@@ -201,7 +198,7 @@ void HMI_GraphAddData(uint16_t screen_id, uint16_t ctrl_id, uint8_t channel,
  * 5. 历史曲线 historygraph（趋势）
  * ============================================================ */
 
-/* 源: hmi_driver.c:1687  EE B1 61 <screen> <ctrl> <enable> */
+/* 源: hmi_driver.c  EE B1 61 <screen> <ctrl> <enable> */
 void HMI_HistoryEnable(uint16_t screen_id, uint16_t ctrl_id, uint8_t enable)
 {
     begin_cmd();
@@ -211,7 +208,7 @@ void HMI_HistoryEnable(uint16_t screen_id, uint16_t ctrl_id, uint8_t enable)
     end_cmd();
 }
 
-/* 源: hmi_driver.c:1721  EE B1 63 <screen> <ctrl> 00 <count:16>
+/* 源: hmi_driver.c  EE B1 63 <screen> <ctrl> 00 <count:16>
  * count = 一屏显示的采样点数。本工程 sample_cycle=60s，
  *   30 分钟 -> 30 点；2 小时 -> 120 点；8 小时 -> 480 点 */
 void HMI_HistoryTimeLength(uint16_t screen_id, uint16_t ctrl_id, uint16_t count)
@@ -224,7 +221,7 @@ void HMI_HistoryTimeLength(uint16_t screen_id, uint16_t ctrl_id, uint16_t count)
     end_cmd();
 }
 
-/* 源: hmi_driver.c:1621  EE B1 60 <screen> <ctrl> <各通道数据:16*n>
+/* 源: hmi_driver.c  EE B1 60 <screen> <ctrl> <各通道数据:16*n>
  * 每调用一次 = 追加一个时间点的采样（多通道时按顺序给各通道值） */
 void HMI_HistorySampleU16(uint16_t screen_id, uint16_t ctrl_id,
                           const uint16_t *value, uint8_t channel_cnt)
@@ -239,7 +236,7 @@ void HMI_HistorySampleU16(uint16_t screen_id, uint16_t ctrl_id,
 
 /* ============================================================
  * 6. 批量更新
- *    源: hmi_driver.c:1272 BatchBegin / 1342 BatchSetText / 1295 BatchSetProgress / 1389 BatchEnd
+ *    源: hmi_driver.c BatchBegin / BatchSetText / BatchSetProgress / BatchEnd
  *    一条帧里塞多个控件，帧数少、带宽省，推荐用于每拍的数值刷新
  * ============================================================ */
 void HMI_BatchBegin(uint16_t screen_id)
@@ -274,7 +271,7 @@ void HMI_BatchEnd(void)
     end_cmd();
 }
 
-/* 源: hmi_driver.c:852  EE B3 <enable> */
+/* 源: hmi_driver.c  EE B3 <enable> */
 void HMI_ScreenUpdateEnable(uint8_t enable)
 {
     begin_cmd();
@@ -288,12 +285,12 @@ void HMI_ScreenUpdateEnable(uint8_t enable)
  *     指令集 V5.1：2.38 RTC时钟设置(81) / 2.39 读取RTC(82) / 背光(60) / 蜂鸣器(61)
  * ============================================================ */
 
-static uint8_t bin2bcd(uint8_t v)
+static uint8_t bin2bcd(uint8_t v)        /* 二进制 -> BCD（只有低两位十进制有效） */
 {
     return (uint8_t)(((v / 10u) << 4) | (v % 10u));
 }
 
-static uint8_t bcd2bin(uint8_t v)
+static uint8_t bcd2bin(uint8_t v)        /* BCD -> 二进制 */
 {
     return (uint8_t)(((v >> 4) * 10u) + (v & 0x0F));
 }
@@ -348,7 +345,7 @@ void HMI_Beep(uint16_t ms)
  * 目标观感（标准 pleth）：静息基线贴近屏幕底部，每个脉搏向上拱起；无论灌注强弱，
  * 波形纵向都撑满控件，一眼能看出节律、幅度和形态（上升支/重搏切迹）。
  *
- * 做法 = 自适应归一化（取代原来的"固定增益"）：
+ * 做法 = 自适应归一化：
  *   1) 慢 EMA 跟踪基线 DC，只去掉大直流和缓慢漂移；
  *   2) 对交流分量 AC 做"快起慢落"的上下包络跟踪：
  *        上升沿立即跟随（不漏掉收缩期峰值），回落按 WAVE_ENV_SHIFT 缓慢衰减
@@ -357,17 +354,12 @@ void HMI_Beep(uint16_t ms)
  *   4) 增益封顶：当包络跨度相对 DC 太小时（弱灌注/无脉搏/只剩噪声），
  *        不把跨度当成真实幅度去无限放大，避免"一条乱抖的线"。
  *
- * ★ 为什么必须自适应（原固定增益为什么"不直观"）：
- *   AFE4490 的 IR 交流幅度同时受 LED 电流、TIA 增益、指夹贴合度、末梢灌注影响，
- *   实测可差数十倍。固定增益 ×1.5625（旧 WAVE_FIXED_GAIN=400）下必然二选一：
- *     弱灌注 -> 交流只有几个计数，乘完几乎不动，看起来"一条平线/没波形"；
- *     强灌注 -> 交流上千计数，乘完越过 0/255 被硬削幅，看起来"方波、没有脉搏形状"。
- *   自适应归一化后，强弱只体现在包络的疏密上，"看不看得见"不再取决于灌注。
+ * 自适应原因：AFE4490 的 IR 交流幅度同时受 LED 电流、TIA 增益、指夹贴合度、
+ *   末梢灌注影响，实测可差数十倍；固定增益无法同时兼顾弱灌注与强灌注。
  *
- * ★ 采样率说明：入环/推入的是**未右移**的原始 ADC 值。旧实现曾做 ir_raw>>8，
- *   弱信号时交流只剩个位数计数，量化台阶明显（波形呈锯齿楼梯状）；现在保留全精度。
+ * 采样率：入环的是未右移的原始 ADC 值，保留全精度，避免弱信号量化台阶。
  *
- * ---- 可调旋钮（改了要重新烧录观察） ----
+ * ---- 可调旋钮（改了需重新烧录观察） ----
  *   WAVE_BASE / WAVE_TOP : 基线与峰值在 0~255 里的位置。
  *       若屏上波形"从顶部向下跳"（说明控件 0/255 方向与假设相反），
  *       把 WAVE_BASE 改成 232、WAVE_TOP 改成 8 即可整条翻转；
@@ -389,8 +381,8 @@ void HMI_Beep(uint16_t ms)
 #define WAVE_RANGE         (WAVE_TOP - WAVE_BASE)
 
 static struct {
-    uint8_t  pts[HMI_WAVE_CHUNK];
-    uint8_t  cnt;
+    uint8_t  pts[HMI_WAVE_CHUNK];   /* 已映射到 0~255 的待发波形点 */
+    uint8_t  cnt;                   /* pts[] 已攒点数，达 HMI_WAVE_CHUNK 即发送 */
     int32_t  dc;       /* 基线：慢 EMA 跟踪，去直流与缓慢漂移 */
     int32_t  hi;       /* AC 上包络（收缩期峰值侧） */
     int32_t  lo;       /* AC 下包络（舒张期谷值侧） */
@@ -399,14 +391,13 @@ static struct {
 
 /* ============================================================
  * 7.5 PPG 真实处理：数字滤波 + 峰值检测(PR) + 信号质量(SQI)
- *    ★ 2026-10-13 新增（依据《PPG波形分析与改进建议》#2/#3/#4）
  *
- * 背景：UNO 端报来的 PR 由 RED 通道经 hr_algorithm 算出，但该算法无幅度阈值、
+ * 背景：UNO 端报来的 PR 由 RED 通道经 hr_algorithm 算出，该算法无幅度阈值、
  *   movingWindowSize=freq/50=2 几乎不平滑，高频毛刺常被当峰计成 ~208bpm 的"假心跳"。
- *   这里在 F407 端用**屏上显示的同一路 IR 波形**重算 PR + 真实 SQI，与显示同源，
+ *   这里在 F407 端用屏上显示的同一路 IR 波形重算 PR + 真实 SQI，与显示同源，
  *   且不改动 UNO 固件、不改帧格式。
  *
- * 采样率 Fs：用户实测 ≈121Hz（示例1 loop 内 delay(8)+采样），故滤波/峰距按 121 计。
+ * 采样率 Fs：用户实测 ≈121Hz（UNO loop 内 delay(8)+采样），故滤波/峰距按 121 计。
  *
  * 数字滤波链（每入一个 IR 原始采样）：
  *   1) 慢 EMA 高通去基线漂移（fc≈0.5Hz）
@@ -453,19 +444,38 @@ static struct {
     float    cand_val;    /* 候选峰幅度 */
     uint32_t cand_idx;    /* 候选峰序号 */
     uint8_t  above;       /* 是否处于超阈值状态 */
-    int16_t  pr_est;
-    uint8_t  pr_ok;
+    uint8_t  need_trough; /* 谷值门控：1=必须出现"足够深的谷"才允许确认下一个峰 */
+    int16_t  pr_est;      /* 脉率估计值（bpm） */
+    uint8_t  pr_ok;       /* 1 = PR 有效 */
 
     /* SQI */
-    float    prom[PPG_SQI_BEATS];
-    uint8_t  prom_i;
-    uint8_t  prom_cnt;
+    float    prom[PPG_SQI_BEATS];   /* 近若干拍的峰-谷幅度(prominence) */
+    uint8_t  prom_i;                /* prom[] 环形写指针 */
+    uint8_t  prom_cnt;              /* prom[] 中有效拍数，上限 PPG_SQI_BEATS */
 } s_ppg;
+
+#if DEBUG_PPG
+/* 调试/诊断：统计 ppg_reset 被调用的次数，用于定位 PR 周期性掉 0 是否因为 valid 抖动 */
+volatile uint32_t g_ppg_rst_cnt = 0;
+
+/* 调试：暴露峰检的幅度/阈值，定位 f407_ok=0 是被
+   "大伪迹把动态阈值 recent_amp 抬得太高、长时间卡死"，还是"信号幅度本来就太小"。
+   判读：ac 与 thr 同数量级 → 正常；thr 远大于 ac 且两者都在减小 → 伪迹把阈值顶高后
+   在缓慢回落（0.9995/样点，半衰期≈11.5s）；amp/thr 一直很小 → 信号太弱。 */
+volatile float    g_ppg_dbg_amp   = 0.0f;   /* recent_amp：近期幅度（动态阈值基准） */
+volatile float    g_ppg_dbg_thr   = 0.0f;   /* 当前动态阈值 = recent_amp*0.5 */
+volatile float    g_ppg_dbg_ac    = 0.0f;   /* 最近一次 |clean| */
+volatile uint8_t  g_ppg_dbg_above = 0u;     /* 是否处于超阈值态 */
+volatile uint32_t g_ppg_dbg_pkcnt = 0u;     /* 累计确认的峰数 */
+#endif /* DEBUG_PPG */
 
 /* 复位滤波 + 峰值 + SQI（探头断开 / 初始化 / 长期暂停后调用） */
 static void ppg_reset(void)
 {
     uint8_t i;
+#if DEBUG_PPG
+    g_ppg_rst_cnt++;
+#endif
     s_ppg.primed        = 0;
     s_ppg.dc            = 0.0f;
     s_ppg.lp            = 0.0f;
@@ -482,6 +492,7 @@ static void ppg_reset(void)
     s_ppg.cand_val       = 0.0f;
     s_ppg.cand_idx       = 0;
     s_ppg.above          = 0;
+    s_ppg.need_trough    = 0;
     s_ppg.pr_est         = 0;
     s_ppg.pr_ok          = 0;
     for (i = 0; i < (uint8_t)PPG_SQI_BEATS; i++) s_ppg.prom[i] = 0.0f;
@@ -529,9 +540,33 @@ static void ppg_peak(float clean)
     if (a > s_ppg.recent_amp) s_ppg.recent_amp = a;
     else s_ppg.recent_amp *= 0.9995f;
 
+    /* 长时间(>3s)没检出峰(pr_ok=0)时，额外加快 recent_amp 回落，把被大伪迹
+       （手指一动）顶高的动态阈值 thr 尽快拉回信号幅度附近，实现"重捕获"。
+       常规回落仅 0.9995/样点(半衰期≈11.5s)，一次伪迹能让峰检卡死十几~几十秒，
+       期间屏上 PR=0、信号质量=0；此处仅在已失效(pr_ok=0)时生效，不影响正常状态。 */
+    if (!s_ppg.pr_ok) s_ppg.recent_amp *= 0.99f;
+
     if (clean < s_ppg.run_min) s_ppg.run_min = clean;
 
     thr = s_ppg.recent_amp * 0.5f;
+
+#if DEBUG_PPG
+    /* 调试：暴露幅度/阈值（判读见 g_ppg_dbg_* 说明） */
+    g_ppg_dbg_amp = s_ppg.recent_amp;
+    g_ppg_dbg_thr = thr;
+    g_ppg_dbg_ac  = a;
+#endif
+
+    /* 谷值门控（消除 PPG 二次波峰导致的 PR 翻倍）。
+       脉搏波每个心动周期常有一个与主峰几乎等高的"二次波峰"(dicrotic wave)，
+       它与主峰之间只隔一个浅凹(仍为正)，而主峰之后才跌到深谷(负)。
+       若不加门控，二次峰被当成独立的一拍，PR 直接翻倍(~2×真实心率)。
+       规则：两个被确认的峰之间必须出现一个足够深的谷(clean < -0.1*amp)，
+       否则不确认新峰。主峰→二次峰只到浅凹(不满足)→剔除二次峰；
+       二次峰→下一主峰到深谷(满足)→下一主峰正常确认。故每拍只计一次。 */
+    if (s_ppg.need_trough && clean < -(s_ppg.recent_amp * 0.1f)) {
+        s_ppg.need_trough = 0;
+    }
 
     if (!s_ppg.above) {
         if (clean > thr) {
@@ -545,10 +580,10 @@ static void ppg_peak(float clean)
             s_ppg.cand_idx = s_ppg.sample_cnt;
         }
         if (clean < thr) {
-            /* 下降穿越 → 确认一个峰 */
+            /* 下降穿越 → 确认一个峰（须满足最小峰距且已出现深谷） */
             uint32_t dpk = (s_ppg.cand_idx > s_ppg.last_peak_idx)
                          ? (s_ppg.cand_idx - s_ppg.last_peak_idx) : 0u;
-            if (dpk >= PPG_MIN_PEAK_SAMPLES) {
+            if (dpk >= PPG_MIN_PEAK_SAMPLES && !s_ppg.need_trough) {
                 if (s_ppg.last_peak_idx != 0u) {
                     float interval = (float)dpk / PPG_FS_HZ;
                     float pr = 60.0f / interval;
@@ -566,11 +601,18 @@ static void ppg_peak(float clean)
                     }
                 }
                 s_ppg.last_peak_idx = s_ppg.cand_idx;
+                s_ppg.need_trough   = 1;   /* 已确认一个峰：要求先出现深谷再确认下一个 */
+#if DEBUG_PPG
+                g_ppg_dbg_pkcnt++;   /* 调试：确认峰计数 */
+#endif
             }
             s_ppg.above   = 0;
             s_ppg.run_min = clean;   /* 重置谷值跟踪 */
         }
     }
+#if DEBUG_PPG
+    g_ppg_dbg_above = s_ppg.above;   /* 调试 */
+#endif
 
     s_ppg.sample_cnt++;
 
@@ -585,6 +627,14 @@ static void ppg_peak(float clean)
 int16_t HMI_WaveGetPR(void)
 {
     return s_ppg.pr_ok ? s_ppg.pr_est : 0;
+}
+
+/* 调试：把 F407 峰检内部状态拆开暴露，便于定位 PR=0 是"UNO 原值丢"还是"F407 峰检丢" */
+void HMI_WaveGetPRDetail(uint8_t *ok_out, int16_t *est_out, uint8_t *prom_out)
+{
+    if (ok_out)  *ok_out  = s_ppg.pr_ok;
+    if (est_out) *est_out = s_ppg.pr_est;
+    if (prom_out)*prom_out= s_ppg.prom_cnt;
 }
 
 /* 读取真实 SQI 0~100（峰-峰一致性）；样本不足返回 0 */
@@ -686,8 +736,8 @@ void HMI_WavePush(int32_t ir_raw, uint8_t valid)
         return;
     }
 
-    /* ★ 2026-10-13：先经数字滤波链（去直流+5Hz 低通+50Hz 陷波+滑动平均），
-     *   再用 clean 做显示映射，并同时跑峰值检测（PR/SQI）。屏上波形与 PR 同源。 */
+    /* 先经数字滤波链（去直流+5Hz 低通+50Hz 陷波+滑动平均），再用 clean 做显示映射，
+     * 并同时跑峰值检测（PR/SQI）。屏上波形与 PR 同源。 */
     clean = ppg_filter((float)ir_raw);
     ppg_peak(clean);
     s_wave.pts[s_wave.cnt++] = wave_map((int32_t)clean);
@@ -717,9 +767,9 @@ void HMI_WaveFlush(void)
 
 #define RX_BUF_SIZE          256
 
-static uint8_t  s_rx[RX_BUF_SIZE];
-static uint16_t s_rxlen;
-static uint8_t  s_inframe;
+static uint8_t  s_rx[RX_BUF_SIZE];   /* 上行帧接收缓冲 */
+static uint16_t s_rxlen;             /* 已收字节数 */
+static uint8_t  s_inframe;           /* 1 = 正在收帧，帧尾收齐后清 0 */
 
 /* 自屏累计收到的字节数（每收到 1 字节 +1），用于判定链路/波特率是否通 */
 volatile uint32_t g_hmi_rx_bytes = 0;
@@ -753,10 +803,8 @@ void HMI_Poll(void)
     const uint8_t *p;
 
     if (s_inframe) return;                 /* 帧没收全 */
-    /* 最短的有用上行帧 = 画面切换通知 EE B1 01 <screen:16> FF FC FF FF = 9 字节。
-       ★ 2026-10-10 修正：原门限写的是 11，会把 9 字节的画面切换通知全部丢掉，
-         导致 NotifyScreen() 永远不会被调用（"切页后补发文案"机制形同虚设）。
-       按钮通知帧是 14 字节（2 字节 param），不受影响。 */
+    /* 最短的有用上行帧 = 画面切换通知 EE B1 01 <screen:16> FF FC FF FF = 9 字节，
+       故门限取 9；按钮通知帧为 14 字节（2 字节 param），不受影响。 */
     if (s_rxlen < 9) { s_rxlen = 0; return; }
 
     if (s_rx[s_rxlen - 4] != 0xFF || s_rx[s_rxlen - 3] != 0xFC ||
