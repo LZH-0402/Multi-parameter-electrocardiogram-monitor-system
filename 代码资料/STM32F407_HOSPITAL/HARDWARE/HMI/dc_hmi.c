@@ -397,6 +397,217 @@ static struct {
     uint8_t  primed;   /* 0 = 还没拿到第一个采样，基线尚未建立 */
 } s_wave;
 
+/* ============================================================
+ * 7.5 PPG 真实处理：数字滤波 + 峰值检测(PR) + 信号质量(SQI)
+ *    ★ 2026-10-13 新增（依据《PPG波形分析与改进建议》#2/#3/#4）
+ *
+ * 背景：UNO 端报来的 PR 由 RED 通道经 hr_algorithm 算出，但该算法无幅度阈值、
+ *   movingWindowSize=freq/50=2 几乎不平滑，高频毛刺常被当峰计成 ~208bpm 的"假心跳"。
+ *   这里在 F407 端用**屏上显示的同一路 IR 波形**重算 PR + 真实 SQI，与显示同源，
+ *   且不改动 UNO 固件、不改帧格式。
+ *
+ * 采样率 Fs：用户实测 ≈121Hz（示例1 loop 内 delay(8)+采样），故滤波/峰距按 121 计。
+ *
+ * 数字滤波链（每入一个 IR 原始采样）：
+ *   1) 慢 EMA 高通去基线漂移（fc≈0.5Hz）
+ *   2) 一阶低通（fc≈5Hz）
+ *   3) 50Hz 二阶陷波（biquad，系数见下）
+ *   4) N 点滑动平均
+ * 输出 clean（已去直流+去噪的 AC）同时用于：屏上显示映射 + 峰值检测。
+ *
+ * 峰值检测：动态阈值 = 近期峰幅度*0.5；最小峰距 = 250ms（最高 240bpm）；
+ *   越过阈值的局部最大且峰距合法 → 记一拍，由峰距算 PR（EMA 平滑）。
+ * SQI：近 8 拍"峰-谷幅度(prominence)"的一致性 —— (1-(max-min)/(2*mean))*100。
+ * ============================================================ */
+#define PPG_FS_HZ           121.0f
+#define PPG_DC_A            0.026f   /* 高通 α：fc≈2π*0.5/121≈0.026 → 去基线漂移 */
+#define PPG_LP_A            0.26f    /* 低通 α：fc≈2π*5/121≈0.26 → 带通上限≈5Hz */
+#define PPG_MA_N            4u       /* 滑动平均窗口（2 的幂）：≈33ms @121Hz */
+#define PPG_MIN_PEAK_SAMPLES 30u     /* 250ms@121Hz：最高 240bpm，剔除噪声双峰 */
+#define PPG_SQI_BEATS       8u       /* SQI 统计的近期拍数（2 的幂） */
+#define PPG_PR_TIMEOUT_SAMPLES (3u * 121u)  /* 超 3s 无新峰 → PR 失效 */
+
+/* 50Hz 陷波 biquad 系数（float，已对 a0 归一化；Fs=121, Q=30, f0=50）
+ *   w0=2π*50/121, alpha=sin(w0)/(2Q)；b0=b2=1/a0, b1=a1=-2cos(w0)/a0, a2=(1-alpha)/a0 */
+static const float PPG_NB0 = 0.99143f;
+static const float PPG_NB1 = 1.69398f;
+static const float PPG_NB2 = 0.99143f;
+static const float PPG_NA1 = 1.69398f;
+static const float PPG_NA2 = 0.98287f;
+
+static struct {
+    uint8_t  primed;
+    float    dc;          /* 慢基线（去直流/漂移） */
+    float    lp;          /* 低通输出 */
+    float    nx1, nx2;    /* notch 输入延迟 */
+    float    ny1, ny2;    /* notch 输出延迟 */
+    float    ma_buf[PPG_MA_N];
+    float    ma_sum;
+    uint8_t  ma_i;
+
+    /* 峰值检测 */
+    uint32_t sample_cnt;
+    uint32_t last_peak_idx;
+    float    recent_amp;  /* 动态阈值用的近期峰幅度 */
+    float    run_min;     /* 当前峰间谷值 */
+    float    cand_val;    /* 候选峰幅度 */
+    uint32_t cand_idx;    /* 候选峰序号 */
+    uint8_t  above;       /* 是否处于超阈值状态 */
+    int16_t  pr_est;
+    uint8_t  pr_ok;
+
+    /* SQI */
+    float    prom[PPG_SQI_BEATS];
+    uint8_t  prom_i;
+    uint8_t  prom_cnt;
+} s_ppg;
+
+/* 复位滤波 + 峰值 + SQI（探头断开 / 初始化 / 长期暂停后调用） */
+static void ppg_reset(void)
+{
+    uint8_t i;
+    s_ppg.primed        = 0;
+    s_ppg.dc            = 0.0f;
+    s_ppg.lp            = 0.0f;
+    s_ppg.nx1 = s_ppg.nx2 = 0.0f;
+    s_ppg.ny1 = s_ppg.ny2 = 0.0f;
+    s_ppg.ma_sum        = 0.0f;
+    s_ppg.ma_i          = 0;
+    for (i = 0; i < (uint8_t)PPG_MA_N; i++) s_ppg.ma_buf[i] = 0.0f;
+
+    s_ppg.sample_cnt     = 0;
+    s_ppg.last_peak_idx  = 0;
+    s_ppg.recent_amp     = 0.0f;
+    s_ppg.run_min        = 0.0f;
+    s_ppg.cand_val       = 0.0f;
+    s_ppg.cand_idx       = 0;
+    s_ppg.above          = 0;
+    s_ppg.pr_est         = 0;
+    s_ppg.pr_ok          = 0;
+    for (i = 0; i < (uint8_t)PPG_SQI_BEATS; i++) s_ppg.prom[i] = 0.0f;
+    s_ppg.prom_i         = 0;
+    s_ppg.prom_cnt       = 0;
+}
+
+/* 数字滤波链：原始 IR -> clean（已去直流+去噪的 AC）。仅在 valid 时调用。 */
+static float ppg_filter(float raw)
+{
+    float ac, y;
+    uint8_t i;
+
+    if (!s_ppg.primed) { s_ppg.dc = raw; s_ppg.primed = 1; }
+
+    /* 1) 慢 EMA 高通：去基线/漂移 */
+    s_ppg.dc += (raw - s_ppg.dc) * PPG_DC_A;
+    ac = raw - s_ppg.dc;
+
+    /* 2) 一阶低通 ~5Hz */
+    s_ppg.lp += (ac - s_ppg.lp) * PPG_LP_A;
+
+    /* 3) 50Hz 陷波 biquad（Direct Form I） */
+    y = PPG_NB0 * s_ppg.lp + PPG_NB1 * s_ppg.nx1 + PPG_NB2 * s_ppg.nx2
+      - PPG_NA1 * s_ppg.ny1 - PPG_NA2 * s_ppg.ny2;
+    s_ppg.nx2 = s_ppg.nx1; s_ppg.nx1 = s_ppg.lp;
+    s_ppg.ny2 = s_ppg.ny1; s_ppg.ny1 = y;
+
+    /* 4) 滑动平均 */
+    s_ppg.ma_sum += y - s_ppg.ma_buf[s_ppg.ma_i];
+    s_ppg.ma_buf[s_ppg.ma_i] = y;
+    i = s_ppg.ma_i;
+    s_ppg.ma_i = (uint8_t)((i + 1u) & (PPG_MA_N - 1u));
+
+    return s_ppg.ma_sum / (float)PPG_MA_N;
+}
+
+/* 峰值检测 + PR/SQI 更新（输入为滤波后的 AC 信号 clean） */
+static void ppg_peak(float clean)
+{
+    float a, thr, prom;
+
+    /* 近期幅度（衰减最大值）→ 动态阈值 */
+    a = (clean < 0.0f) ? -clean : clean;
+    if (a > s_ppg.recent_amp) s_ppg.recent_amp = a;
+    else s_ppg.recent_amp *= 0.9995f;
+
+    if (clean < s_ppg.run_min) s_ppg.run_min = clean;
+
+    thr = s_ppg.recent_amp * 0.5f;
+
+    if (!s_ppg.above) {
+        if (clean > thr) {
+            s_ppg.above    = 1;
+            s_ppg.cand_val = clean;
+            s_ppg.cand_idx = s_ppg.sample_cnt;
+        }
+    } else {
+        if (clean > s_ppg.cand_val) {
+            s_ppg.cand_val = clean;
+            s_ppg.cand_idx = s_ppg.sample_cnt;
+        }
+        if (clean < thr) {
+            /* 下降穿越 → 确认一个峰 */
+            uint32_t dpk = (s_ppg.cand_idx > s_ppg.last_peak_idx)
+                         ? (s_ppg.cand_idx - s_ppg.last_peak_idx) : 0u;
+            if (dpk >= PPG_MIN_PEAK_SAMPLES) {
+                if (s_ppg.last_peak_idx != 0u) {
+                    float interval = (float)dpk / PPG_FS_HZ;
+                    float pr = 60.0f / interval;
+                    if (pr >= 30.0f && pr <= 240.0f) {
+                        if (!s_ppg.pr_ok) {
+                            s_ppg.pr_est = (int16_t)pr; s_ppg.pr_ok = 1;
+                        } else {
+                            s_ppg.pr_est = (int16_t)((float)s_ppg.pr_est * 0.7f + pr * 0.3f);
+                        }
+                        /* SQI：本拍 prominence = 候选峰 - 谷值 */
+                        prom = s_ppg.cand_val - s_ppg.run_min;
+                        s_ppg.prom[s_ppg.prom_i] = prom;
+                        s_ppg.prom_i = (uint8_t)((s_ppg.prom_i + 1u) & (PPG_SQI_BEATS - 1u));
+                        if (s_ppg.prom_cnt < (uint8_t)PPG_SQI_BEATS) s_ppg.prom_cnt++;
+                    }
+                }
+                s_ppg.last_peak_idx = s_ppg.cand_idx;
+            }
+            s_ppg.above   = 0;
+            s_ppg.run_min = clean;   /* 重置谷值跟踪 */
+        }
+    }
+
+    s_ppg.sample_cnt++;
+
+    /* 超时：超过 3s 没新峰 → 视为信号丢失，PR 失效（避免冻结旧值） */
+    if (s_ppg.pr_ok &&
+        (s_ppg.sample_cnt - s_ppg.last_peak_idx) > PPG_PR_TIMEOUT_SAMPLES) {
+        s_ppg.pr_ok = 0;
+    }
+}
+
+/* 读取 F407 端用 IR 波形重算的 PR（0 = 尚未算出/信号丢失） */
+int16_t HMI_WaveGetPR(void)
+{
+    return s_ppg.pr_ok ? s_ppg.pr_est : 0;
+}
+
+/* 读取真实 SQI 0~100（峰-峰一致性）；样本不足返回 0 */
+uint8_t HMI_WaveGetSQI(void)
+{
+    float sum, mean, mx, mn, consist;
+    uint8_t i;
+    if (s_ppg.prom_cnt < 4u) return 0;
+    sum = 0.0f; mx = -1.0e30f; mn = 1.0e30f;
+    for (i = 0; i < s_ppg.prom_cnt; i++) {
+        float v = s_ppg.prom[i];
+        sum += v;
+        if (v > mx) mx = v;
+        if (v < mn) mn = v;
+    }
+    mean = sum / (float)s_ppg.prom_cnt;
+    if (mean <= 0.0f) return 0;
+    consist = 1.0f - (mx - mn) / (2.0f * mean);   /* 1 = 完全一致 */
+    if (consist < 0.0f) consist = 0.0f;
+    if (consist > 1.0f) consist = 1.0f;
+    return (uint8_t)(consist * 100.0f);
+}
+
 /* 只清"归一化状态"（基线与包络），不动已攒在 pts[] 里的点 */
 static void wave_reset_state(void)
 {
@@ -410,6 +621,7 @@ void HMI_WaveReset(void)
 {
     s_wave.cnt = 0;
     wave_reset_state();
+    ppg_reset();          /* 同步复位滤波/峰值/SQI 状态 */
 }
 
 /* 单点映射：原始 ADC -> 0~255 */
@@ -460,18 +672,25 @@ static uint8_t wave_map(int32_t raw)
 
 void HMI_WavePush(int32_t ir_raw, uint8_t valid)
 {
+    float clean;
+
     if (!valid) {
         /* 无有效采样（探头未接入 / 算法还没出值）：
          * 推一条平线贴底，并复位归一化状态，等有效后重新建立基线。
          * 这样探头取下时是一条干净的基线，而不是把噪声放大成乱抖的线。
          * 注：只复位基线与包络，不丢弃 pts[] 里已经攒好的点。 */
         if (s_wave.primed) wave_reset_state();
+        ppg_reset();          /* 复位滤波/峰值/SQI，避免恢复瞬间乱跳 */
         s_wave.pts[s_wave.cnt++] = (uint8_t)WAVE_BASE;
         if (s_wave.cnt >= HMI_WAVE_CHUNK) HMI_WaveFlush();
         return;
     }
 
-    s_wave.pts[s_wave.cnt++] = wave_map(ir_raw);
+    /* ★ 2026-10-13：先经数字滤波链（去直流+5Hz 低通+50Hz 陷波+滑动平均），
+     *   再用 clean 做显示映射，并同时跑峰值检测（PR/SQI）。屏上波形与 PR 同源。 */
+    clean = ppg_filter((float)ir_raw);
+    ppg_peak(clean);
+    s_wave.pts[s_wave.cnt++] = wave_map((int32_t)clean);
     if (s_wave.cnt >= HMI_WAVE_CHUNK) HMI_WaveFlush();
 }
 

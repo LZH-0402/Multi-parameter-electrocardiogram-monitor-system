@@ -536,6 +536,15 @@ void on_uno_frame(void)
 
     valid = g_meas.probe_state;      /* 0 = 探头未接入/算法未出值 -> 屏上画平线 */
     for (i = 0; i < n; i++) HMI_WavePush(w[i], valid);
+
+    /* ★ 2026-10-13：用 F407 端 IR 波形重算的 PR 与真实 SQI 覆盖 UNO 值。
+     *   PR 走峰值检测（动态阈值 + 最小峰距 250ms），噪声不会被计成 208；
+     *   SQI 走峰-峰一致性，替代原来的固定 100。信号丢失时 PR 回落到 0。 */
+    if (valid) {
+        int16_t pr = HMI_WaveGetPR();
+        g_meas.pulse_rate    = (pr > 0) ? pr : 0;
+        g_meas.signal_quality = HMI_WaveGetSQI();
+    }
 }
 
 /* ============================================================
