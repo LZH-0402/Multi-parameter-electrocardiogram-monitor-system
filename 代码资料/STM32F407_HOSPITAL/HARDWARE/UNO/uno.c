@@ -11,6 +11,10 @@
 measurement_t g_meas;
 uint8_t      g_new_frame = 0;
 
+/* uwTick 在 sys.c 中定义（= SysTick 1ms 节拍，SPO2 与 BP 共用同一计数）。
+ * 此处仅读不写，用于在解帧成功时给 g_meas.result_time_ms 打时间戳（时效标注）。 */
+extern volatile uint32_t uwTick;
+
 /* ---- 接收诊断（供 USART1 观察链路） ---- */
 volatile uint32_t g_uno_rx_bytes = 0;   /* 收到的原始字节总数 */
 volatile uint32_t g_uno_frames   = 0;   /* 解析成功的完整帧数 */
@@ -30,6 +34,13 @@ static volatile int32_t  uno_wave[UNO_WAVE_RING];   /* IR 原始 ADC，未做任
 static volatile uint16_t uno_wave_w = 0;    /* 写指针：只有中断改 */
 static volatile uint16_t uno_wave_r = 0;    /* 读指针：只有主循环改 */
 volatile uint16_t g_uno_wave_drop = 0;      /* 环满丢弃点数（诊断用，正常为 0） */
+
+/* ---- CAN 专用 PPG 波形环（镜像 uno_wave，独立消费者 = canopen_app_produce） ----
+ * 与屏显示环完全相同的机制，仅消费者不同，使 CAN 波形上送与屏显示互不争抢同一环。 */
+static volatile uno_wave_can_t uno_wave_can[UNO_WAVE_RING];
+static volatile uint16_t uno_wave_can_w = 0;
+static volatile uint16_t uno_wave_can_r = 0;
+volatile uint16_t g_uno_wave_can_drop = 0;  /* CAN 环满丢弃点数（诊断用，正常为 0） */
 
 /* 按写入先后顺序取走最多 max 个波形点，返回实际取出个数；主循环上下文调用，不可在中断里调用 */
 uint16_t UNO_WaveTake(int32_t *out, uint16_t max)
@@ -53,6 +64,30 @@ uint16_t UNO_WavePending(void)
 void UNO_WaveClear(void)
 {
     uno_wave_r = uno_wave_w;
+}
+
+/* ---- CAN 专用波形环访问函数（消费者 = canopen_app_produce，主循环上下文调用） ---- */
+uint16_t UNO_WaveTakeCAN(int32_t *out_wave, uint32_t *out_tick, uint16_t max)
+{
+    uint16_t n = 0;
+    if (out_wave == 0 || out_tick == 0) return 0;
+    while (n < max && uno_wave_can_r != uno_wave_can_w) {
+        out_wave[n]    = uno_wave_can[uno_wave_can_r].ir_wave;
+        out_tick[n]    = uno_wave_can[uno_wave_can_r].sample_tick;
+        n++;
+        uno_wave_can_r = (uint16_t)((uno_wave_can_r + 1u) & UNO_WAVE_MASK);
+    }
+    return n;
+}
+
+uint16_t UNO_WavePendingCAN(void)
+{
+    return (uint16_t)((uno_wave_can_w - uno_wave_can_r) & UNO_WAVE_MASK);
+}
+
+void UNO_WaveClearCAN(void)
+{
+    uno_wave_can_r = uno_wave_can_w;
 }
 
 /* ------------------------------------------------------------------
@@ -144,6 +179,9 @@ void UNO_ParseByte(uint8_t b)
             /* 不再写 g_meas.signal_quality：该值由主循环 on_uno_frame() 写入真实 SQI，
                本函数在 USART6 中断里每帧执行，若在此写占位值会覆盖真实值。 */
             g_new_frame = 1;
+            /* 时效标注：每次成功解帧都刷新时间戳——只要链路/算法仍在吐帧，
+             * result_time_ms 就持续前移；一旦静默，age_ms 自然增长触发"陈旧"。 */
+            g_meas.result_time_ms = uwTick;
 
             /* 波形入环：每个 IR 采样都进，不合并、不丢点（见 uno.h 的说明）。
              * 存原始值不右移，保留全部精度，缩放交给 dc_hmi.c 的自适应归一化。 */
@@ -154,6 +192,19 @@ void UNO_ParseByte(uint8_t b)
                     uno_wave_w = nw;
                 } else {
                     g_uno_wave_drop++;      /* 环满：主循环没跟上，丢弃并计数 */
+                }
+            }
+            /* 同一采样并行入 CAN 专用环（独立消费者 canopen_app_produce，不抢屏环）。
+             * 配对采样时刻 uwTick：ISR 在这里取，与 ir_wave 组成 (ir_wave, sample_tick) 对，
+             * 供 2110:01/2110:02 分别上送，使 Gateway 能按 tick 做波形时间对齐。 */
+            {
+                uint16_t nwc = (uint16_t)((uno_wave_can_w + 1u) & UNO_WAVE_MASK);
+                if (nwc != uno_wave_can_r) {
+                    uno_wave_can[uno_wave_can_w].ir_wave     = g_meas.ir_raw;
+                    uno_wave_can[uno_wave_can_w].sample_tick = uwTick;
+                    uno_wave_can_w = nwc;
+                } else {
+                    g_uno_wave_can_drop++;
                 }
             }
         }
@@ -179,6 +230,9 @@ void UNO_Reset(void)
     g_uno_wave_drop = 0;
     uno_wave_w = 0;
     uno_wave_r = 0;
+    g_uno_wave_can_drop = 0;
+    uno_wave_can_w = 0;
+    uno_wave_can_r = 0;
 }
 
 /* 拷贝最近 n 个原始接收字节（按接收先后顺序）到 out，返回实际拷贝个数；n 上限 UNO_RING_SZ(32) */

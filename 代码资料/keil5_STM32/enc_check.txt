@@ -1,6 +1,0 @@
-dbg_log.h | utf8日志:True | gbk日志:False | gbk-FAIL utf8-ok
-dbg_log.c | utf8日志:True | gbk日志:False | gbk-FAIL utf8-ok
-meas.h | utf8日志:False | gbk日志:True | gbk-ok utf8-FAIL
-meas.c | utf8日志:False | gbk日志:True | gbk-ok utf8-FAIL
-main.c | utf8日志:False | gbk日志:True | gbk-ok utf8-FAILdbg_log.h -> GBK+CRLF ok
-dbg_log.c -> GBK+CRLF ok

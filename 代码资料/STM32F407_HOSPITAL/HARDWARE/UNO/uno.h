@@ -14,6 +14,14 @@ typedef struct {
     uint8_t  result_valid;   /* 1 = 数值有效 */
     uint8_t  fault_code;
     uint32_t monitor_sec;    /* 监护时长（秒），由 main 累加 */
+    /* ---- 时效标注（NodeA_未完成任务清单 §2.2：spo2/hr 时效标注）----
+     * result_time_ms：最近一次"有效结果"落地的时间戳(ms, = uwTick/millis())。
+     *   在 uno.c 每解出一帧成功帧(无论 spo2 是否有效)时刷新；在 app_bloodoxygen.c
+     *   的 on_uno_frame 算出新 PR 时也刷新。链路/算法一旦静默便不再更新，age_ms 据此增长。
+     * age_ms：当前展示值年龄(ms) = millis() - result_time_ms，由 task_hmi_value 刷新；
+     *   超过 SPO2_STALE_MS 即判"数据陈旧"，屏转 -- 并不再把冻结的旧值伪装成新值。 */
+    uint32_t result_time_ms;  /* 最近一次有效结果落地时间戳(ms) */
+    uint32_t age_ms;         /* 当前展示值年龄(ms)，由 task_hmi_value 刷新 */
 } measurement_t;
 
 extern measurement_t g_meas;     /* 解析结果，应用层读取 */
@@ -49,6 +57,25 @@ uint16_t UNO_WavePending(void);
 
 /* 丢弃当前全部积压（暂停监护/恢复时调用，避免恢复瞬间把积压一次冲出） */
 void UNO_WaveClear(void);
+
+/* ---- PPG 波形采样环形缓冲（CAN 专用，独立于屏显示环） ----
+ * 设计：USART6 中断里把每个 IR 采样【同时】推入屏显示环(uno_wave)与 CAN 环(uno_wave_can)，
+ * 两个消费者各自独立取用：屏路径(on_uno_frame) 与 CANopen 路径(canopen_app_produce) 互不争抢，
+ * 避免单消费者环被两次 UNO_WaveTake 互相掏空。容量同样为 2 的幂(UNO_WAVE_RING)。
+ * CAN 环每个采样点与采样时刻 tick 配对：供 2110:01 ir_wave + 2110:02 sample_tick 上送，
+ * 使 Gateway-C 能按 tick（与 2100:02 同域）做波形时间对齐。 */
+typedef struct {
+    int32_t  ir_wave;      /* IR 原始 ADC，未做缩放 */
+    uint32_t sample_tick;  /* 采样时刻(uwTick, ms)，与 2100:02 同域 */
+} uno_wave_can_t;
+
+extern volatile uint16_t g_uno_wave_can_drop;     /* CAN 环满丢弃点数（诊断，正常为 0） */
+
+/* 取走最多 max 个波形点：out_wave 收 IR 原始值、out_tick 收配对采样时刻(uwTick,ms)，返回实际取到个数。
+ * 必须在主循环/任务上下文调用（不可在中断里调用）。out_wave 与 out_tick 须为长度 >= max 的有效缓冲。 */
+uint16_t UNO_WaveTakeCAN(int32_t *out_wave, uint32_t *out_tick, uint16_t max);
+uint16_t UNO_WavePendingCAN(void);
+void     UNO_WaveClearCAN(void);
 
 /* 每收到 UNO 一个字节调用一次（在 USART6 中断里） */
 void UNO_ParseByte(uint8_t b);

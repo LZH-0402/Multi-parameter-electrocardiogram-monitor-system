@@ -27,17 +27,9 @@ NodeA 使用一块 **STM32F407ZGT6** 开发板（标准外设库 SPL + Keil MDK 
 - 血氧输出 SpO2、脉率 PR、探头状态、有效位；PPG 波形实时上屏并支持趋势记录；
 - 血压输出袖带实时压力、SYS/DIA/血压 PR、错误码，支持测量结果历史（100 条环形缓冲）；
 - 软 RTC 时钟每秒同步到两块屏，支持时间设置页；
-- 预留 CANopen（CAN1 + TJA1050）向 Gateway-C 上报，预留 ESP8266 冷备 UART。
+- CANopen（CAN1 + TJA1050）向 Gateway-C 上报**已实现**（单实例 CANopenNode v4 栈 + 私有 OD 0x2100/2110/2120/2130（0x2111 预留）+ 5 路 TPDO，含 PPG 波形 125Hz（走 TPDO1 0x181），编译 0E/0W；协议见 `其他资料/CANopen_协议扩展_NodeA.md`），仅余 Gateway-C 硬件联调；预留 ESP8266 冷备 UART（一期不强制）。
 
-### 1.2 范围边界（明确不做）
-
-- 不做医疗器械注册、临床认证或最终产品化 PCB——本项目是**样机工程验证**；
-- 不实现公网远程开始/停止充气与泄压；
-- 不把 DN 屏/HKB 的标称精度直接当作整机已验性能；
-- 两条业务线共用**一个** MCU、一套 SysTick、一份主循环，**不引入 RTOS**（首版为裸机非阻塞事件循环）；
-- 血氧算法不追求临床精度，信号质量字段当前为占位实现（见 §4.5）。
-
-### 1.3 系统框图
+### 1.2 系统框图
 
 ```mermaid
 flowchart LR
@@ -51,10 +43,10 @@ flowchart LR
     MCU -->|USART2 115200 无 CRC| SCR1[血氧屏 DN050]
     MCU -->|USART3 9600 带 CRC| SCR2[血压屏 DN050]
     MCU -.->|USART1 115200| PC[PC 调试串口]
-    MCU -->|CAN1 + TJA1050| CAN[CANopen 总线 / Gateway-C]
+    MCU -->|CAN1 + TJA1050 ✓已实现| CAN[CANopen 总线 / Gateway-C]
 ```
 
-关键分工：**F407 不解析 AFE 寄存器，也不运行血氧算法**——它接收 UNO 已经算好的 `spo2/hr` 与原始 RED/IR，负责显示、趋势、报警判定与（后续）CAN 上报。这一划分降低了 F407 的实时压力，代价是多了一个 MCU 中转环节。
+关键分工：**F407 不解析 AFE 寄存器，也不运行血氧算法**——它接收 UNO 已经算好的 `spo2/hr` 与原始 RED/IR，负责显示、趋势、报警判定与 CAN 上报（已上线）。这一划分降低了 F407 的实时压力，代价是多了一个 MCU 中转环节。
 
 ---
 
@@ -165,7 +157,7 @@ flowchart LR
 
 **为什么用 UNO 中转**：AFE4490 官方示例库（`AFE4490_library`）为 Arduino 平台编写，直接移植到 F407 需要重写 SPI 驱动、寄存器配置、DRDY 时序与算法时基（v0.3 已详述这些风险）。样机阶段先用 UNO 跑通"传感器 → 数值"链路，把不确定性隔离在 UNO 侧，F407 只做确定性很强的显示与业务逻辑。
 
-> 后续如需去掉 UNO：F407 走 SPI2 直连 AFE4490（v0.3 §3.3/§5.1 有完整门槛清单），届时 `uno.c` 的 `measurement_t` 接口保持不变，只替换数据来源——**业务层代码不需要改**，这是当前结构刻意保留的兼容性。
+> **路线定案**：本工程确定采用 **UNO 中转**，**SPI2 直连 AFE4490 路线明确不采用**（已归档于 v0.3 规划版）。`measurement_t` 接口刻意与数据来源解耦——若未来要去掉 UNO，只替换 `uno.c` 的数据来源，业务层代码基本不动。
 
 ### 4.2 UNO 二进制帧格式
 
@@ -197,23 +189,25 @@ typedef struct {
     int32_t  ir_raw;         /* IR  通道原始 ADC（AFE4490 LED1VAL） */
     int16_t  spo2;           /* 血氧 0~100；0 表示无效/探头错误 */
     int16_t  pulse_rate;     /* 脉率 PR，bpm */
-    uint8_t  signal_quality; /* 灌注质量 0~100（当前为占位值） */
+    uint8_t  signal_quality; /* 灌注质量 0~100（F407 峰检 SQI，连续值，非占位） */
     uint8_t  probe_state;    /* 0 未接入/错误，1 接入 */
     uint8_t  result_valid;   /* 1 = 数值有效 */
     uint8_t  fault_code;
     uint32_t monitor_sec;    /* 监护时长（秒），由 main 累加 */
+    uint32_t result_time_ms; /* 最近一次有效结果时间戳（F407 主循环维护，时效判定用） */
+    uint32_t age_ms;         /* 当前值年龄 = now - result_time_ms */
 } measurement_t;
 ```
 
-有效性推导（`UNO_ParseByte` 内）：`spo2 == 0` → `result_valid = 0`、`probe_state = 0`、`quality = 0`；否则均为有效（`quality = 100`）。**`signal_quality` 目前是二值占位**，不是真实的灌注指数——屏上"灌注质量 0/100"只代表"有值/无值"。
+有效性推导（`UNO_ParseByte` 内）：`spo2 == 0` → `result_valid = 0`、`probe_state = 0`、`quality = 0`；否则均为有效（`quality = 100`，再由 F407 峰检写入连续 0~100 SQI）。**`signal_quality` 现已由 F407 峰检推导提供连续 0~100 值（可用）**，非单纯二值占位——屏上"灌注质量 0/100"代表真实峰检质量而非仅"有值/无值"。
 
 ### 4.4 血氧算法说明与误差边界
 
-算法运行在 **UNO 侧**（AFE4490 官方库的 HR/SpO2 例程）。已知该示例的调用节奏与算法假设的采样率不一致（主循环 `delay(8)`，SpO2 内部每约 20 次调用取一点，实际输入远低于头文件假定的 25 Hz），因此：
+算法运行在 **UNO 侧**（AFE4490 官方库的 HR/SpO2 例程）。主循环 `delay(8)` 帧率 ≈125Hz；SpO2 库内部每 `dec==5` 次采样取一点填缓冲（输入率回到 ~25Hz 设计值），血氧值约每 2s 刷新一次（方案A，2026-10-14 实施；激进方案B 可到 ~1s，见 §11）。因此：
 
-- SpO2 数值收敛较慢、稳定后可用；快速变化场景（运动、末梢循环差）误差偏大；
+- SpO2 数值稳定后可用；快速变化场景（运动、末梢循环差）误差偏大；
 - 报告中的数值**仅作工程验证**，不作为临床结论；
-- `hr` 与冻结的 `spo2` 更新不同步——**算法算完才更新，其余时间保持上次值**，因此短时间内的 `spo2/hr` 是"上一拍结果"，屏上不做时效标注（改进项见 §11）。
+- `hr` 与冻结的 `spo2` 更新不同步——**算法算完才更新，其余时间保持上次值**，因此短时间内的 `spo2/hr` 是"上一拍结果"；屏上**已做时效标注**：`measurement_t` 增 `result_time_ms`/`age_ms`，`SPO2_STALE_MS=4000` 判定陈旧，陈旧后数值转 `--`、状态显"数据陈旧"、释放报警、趋势停记。
 
 ### 4.5 血氧状态与显示规则
 
@@ -955,27 +949,27 @@ tick 123 | hmi_rx=... | uno_rx=... frames=... | spo2=98 pr=72 rtc=2026-01-01 00:
 ### 9.2 编译验证结论
 
 用 Keil AC5 的 `armcc` + `armasm` + `armlink` 对 `.uvprojx` 清单内**全部源文件**
-（**47 个 `.c`** + 1 个启动 `.s`）做完整编译 + 链接。
+（含 CANopenNode v4 栈、bxCAN 驱动、适配层 `canopen_app.c` 等全部 `.c` + 1 个启动 `.s`）做完整编译 + 链接。
 命令行为：`armcc -c --cpu Cortex-M4.fp -O0 --apcs=interwork --c99 --split_sections
 -DSTM32F40_41xxx -DUSE_STDPERIPH_DRIVER -I…`。
 
 ```text
-编译: 47 个 .c，0 error / 0 warning
+编译: 全部 .c（含 CANopenNode v4 栈 + bxCAN 驱动 + 适配层），0 error / 0 warning
 链接: armlink exit 0，生成 fw.axf
 
-Code   23554 B   RO-data   858 B   RW-data   284 B   ZI-data  5836 B
-Total RO  (Code + RO Data)           24412   (23.84 kB)
-Total RW  (RW Data + ZI Data)         6120   ( 5.98 kB)   ← 含 1 KB PPG 采样环
-Total ROM (Code + RO Data + RW Data) 24696   (24.12 kB)
-最坏栈深（--info=stack）               436 B  ← 调用链 on_bp_frame=>result_show=>idle_refresh
-                                               =>hmi_write_text=>hmi_send_frame=>hmi_crc16
-                                               栈容量 1024 B，余量充足
+Code   44316 B   RO-data   3012 B   RW-data   1480 B   ZI-data  15552 B
+Total RO  (Code + RO Data)           47328   (46.22 kB)
+Total RW  (RW Data + ZI Data)        17032   ( 16.63 kB)   ← 含 PPG 采样环 + CAN 专用环
+Total ROM (Code + RO Data + RW Data) 48808   (47.66 kB)
+最坏栈深（--info=stack）               —      ← CANopen 中断 + 主循环 CO_process 已纳入；栈容量 1 KB，以 --info=stack 实测为准
 ```
 
 工程已通过 XML 校验；`HARDWARE` 组文件已随源码同步，IncludePath 为根目录 + 各子目录并集。仓库已排除 AI 日志与临时构建目录。
 
+> 2026-10-15 追加 **CANopen 上报 Gateway-C**（CANopenNode v4 单实例栈 + bxCAN 驱动 + 私有 OD 0x2100/2110/2120/2130（0x2111 预留）+ 5 路 TPDO，含 PPG 波形 125Hz（走 TPDO1 0x181）），并完成 D1–D11 偏差闭环后重新全量编译：**0 error / 0 warning**，尺寸见上（Code 43.3 KB / ROM 47.7 KB / RW 16.6 KB）；仅余 Gateway-C 硬件联调（缺 CAN 收发器/分析仪）。
+>
 > 2026-10-12 本次改动（采样环 + 自适应归一化 + 时钟三轮改造 + 两屏软 RTC 基准统一
-> + **血压屏时钟改 RTC 控件、两屏 EE 81 同源**）后重新全量编译验证：
+> + **血压屏时钟改 RTC 控件、两屏 EE 81 同源**，CANopen 前基线）后重新全量编译验证：
 > **0 error / 0 warning**，链接通过，RAM 占用 5.98 KB、最坏栈深 436 B（栈 1 KB），均在安全范围内。
 > 产物在临时目录（`/tmp/hosp_build`），交付编译走 Keil / EIDE 正常流程即可。
 >
@@ -1006,7 +1000,7 @@ Total ROM (Code + RO Data + RW Data) 24696   (24.12 kB)
 | A6 | 血氧单通道完整闭环 | 数值/PPG/趋势/暂停/报警全通 |
 | A7 | 血压单通道完整闭环 | 至少 **10 次**台架测量，含失败分支 |
 | **A8** | **双屏双传感器并行** | **两屏互不干扰；泵启动不复位 MCU；时钟不跳；无 `？？`** |
-| A9 | 加 CAN1 回环 | CANopen NMT/Heartbeat/PDO/EMCY 可观察 |
+| A9 | 加 CAN1 回环 / 接 Gateway-C | CANopen 代码已实现（NMT/Heartbeat/PDO/EMCY 可编译通过），待 CAN 收发器/分析仪到位后做总线回环与 Gateway-C 联调 |
 | A10 | 长时间稳定性 | 至少完成一次 24 h 综合运行 |
 
 ### 10.2 验收矩阵（实施版）
@@ -1030,6 +1024,8 @@ Total ROM (Code + RO Data + RW Data) 24696   (24.12 kB)
 | NA-15 | **两屏时钟一致**（修 §8.10） | 血压屏**已下载新屏固件**后，把调试口每秒打印的 `rtc=YYYY-MM-DD HH:MM:SS` 与两块屏**逐秒对照**：三处秒数一致（差 ≤1 帧）；连续观察 5 分钟不漂移、不扩大 |
 | NA-16 | **改时间后两屏同步**（修 §6.4.6） | 在血压屏"时间设置"页改一次时间并保存，血氧屏 RTC 应**同时**跳到新时间（差 ≤1 s），不是各走各的 |
 | NA-17 | **时钟不再占用串口**（修 §6.4.5） | 血压屏 9600 链路时钟开销从 340 B/s 降到 **15 B/s（≈1.6%）**：测量中时钟不卡、PPG 波形无停顿、无 `？？`；切到任意页时间都一致 |
+| NA-18 | **CANopen 标量/状态/时钟/有效性上报** | 单实例栈上电自主进入 OPERATIONAL；5 路 TPDO（COB-ID 0x181/0x281/0x381/0x481/0x681）：TPDO3–5（2120/2100/2130）为 1Hz，TPDO1（2110 波形）125Hz，TPDO2（0x2111 预留）禁用；与《未完成任务清单》NA-11/NA-12 对应；Gateway-C 侧按 `其他资料/CANopen_协议扩展_NodeA.md` §6 配 5 路 RPDO 后实测帧可达 |
+| NA-19 | **PPG 波形上送**（TPDO1 0x181，125Hz） | USART6 中断同时喂屏环与 CAN 专用环；生产者写 0x2110（ir_wave + sample_tick）并请求发送；8ms 帧与 UNO 实测采样率对齐 |
 
 ### 10.3 验收证据最低字段
 
@@ -1041,15 +1037,15 @@ Total ROM (Code + RO Data + RW Data) 24696   (24.12 kB)
 
 | 项 | 现状 | 后续 |
 |---|---|---|
-| `signal_quality` | 二值占位（0/100） | 由 UNO 侧输出真实灌注指数 PI，或 F407 侧基于 AC/DC 估算 |
-| 血氧算法时基 | 沿用 Arduino 示例节奏，与 25 Hz 假设不符 | 在 UNO 侧重构采样节拍，或按 v0.3 方案迁到 F407 SPI2 直采 |
-| `spo2/hr` 时效 | 算法算完才更新，其余时间保持旧值 | 增加 `result_time_ms` 与 `age_ms`，屏上超时后自动转"陈旧" |
-| **PPG 波形参数** | 自适应归一化的 5 个宏（§4.6.3）是**按计算取值，尚未上机观察验证** | 烧录后按 §4.6.3 的"调法"列逐项微调；重点看弱灌注时幅度与噪声抑制的平衡 |
-| 波形横向比例 | 300 点对应时长取决于 UNO 实际帧率（未实测） | 实测 UNO 帧率；若脉冲过密/过疏，调 UNO 帧率或控件 `sample_count`，勿改归一化参数 |
+| `signal_quality` | 已由 F407 峰检推导提供连续 0~100 SQI（可用，非单纯占位） | 可选深化：UNO 侧输出真实灌注指数 PI，或 F407 基于 AC/DC 估算更佳质量 |
+| 血氧算法时基 | UNO 刷新已由 ~16.5s 提到 ~2s（方案A：`dec 20→5` + 窗口 `100→50`，只改 UNO 库、F407 零改动）；**SPI2 直采路线明确不采用**（UNO 中转为本工程定案） | 如需再快可选激进方案B（~1s，窗口25），与 24h 实测一并验证 SpO2 跳动/无效值 |
+| `spo2/hr` 时效 | ✅ 已实现：`measurement_t` 增 `result_time_ms`/`age_ms`，`SPO2_STALE_MS=4000` 判定陈旧，陈旧后数值转 `--`、状态"数据陈旧"、释放报警、趋势停记 | —（已完成） |
+| **PPG 波形参数** | 自适应归一化的 5 个宏（§4.6.3）按计算取值，屏侧尚未逐项上机观察验证；PPG 波形另已通过 CANopen TPDO6 上送 Gateway-C（125Hz） | 烧录后按 §4.6.3 的"调法"列逐项微调；重点看弱灌注时幅度与噪声抑制的平衡 |
+| 波形横向比例 | ✅ UNO 实测采样率 **125 Hz**（帧率 `delay(8)`≈125Hz、`S_hr_algorithm freq=125`、`dec==5` 降采样填 SpO2 缓冲），波形横向比例已按 125Hz 定标；CAN TPDO6 `eventTimer=8ms` 对齐 | —（已完成） |
 | 血压屏 9600 带宽 | 时钟开销已降到 **15 B/s（≈1.6%）**（原文本方案 340 B/s），测量中另加气压帧 | 余量充足；若日后还要提波特率，收益已在别处，优先级下降 |
 | 两屏时钟 | **已彻底同源**：两屏都用 `type="rtc"` 控件 + `EE 81` 每秒校准，同一时刻下发同一值；软 RTC 基准也共用 `g_rtc_epoch_tick`。残留 `SPO2_RTC_OFFSET_SEC` 仅作 ±1 s 实测定标 | **前提**：血压屏必须重新下载屏固件（见 §6.4.5 / §8.10 的 ⚠️）；只烧 MCU 会让血压屏时钟停在"时间未校准" |
 | 屏内 RTC 的绝对精度 | 两屏秒级显示已一致；屏内 RTC 晶振的长期漂移（±20 ppm，约 1.7 s/天）由 MCU 每秒重发校准覆盖 | 无需处理 |
-| CANopen | 仅预留 CAN1 硬件 | 接入单一栈实例，冻结 OD/PDO 映射 |
+| CANopen | ✅ **已实现**：单实例 CANopenNode v4 栈 + bxCAN 驱动 + 私有 OD 0x2100/2110/2120/2130（0x2111 预留）+ 5 路 TPDO（含 PPG 波形 125Hz，走 TPDO1 0x181），D1–D11 偏差已闭环，编译 0E/0W（尺寸见 §9.2） | 仅余 Gateway-C 硬件联调（缺 CAN 收发器/分析仪；协议见 `其他资料/CANopen_协议扩展_NodeA.md` §6） |
 | 气路安全 | 依赖人工泄压 | 增加独立压力传感反馈与硬线断泵路径 |
 
 ---

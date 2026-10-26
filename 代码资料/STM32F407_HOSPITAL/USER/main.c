@@ -9,7 +9,12 @@
 #include "uno.h"                /* g_meas / UNO_WaveTake / g_uno_rx_bytes / g_uno_frames */
 #include "app_bloodoxygen.h"    /* app_hmi_init / on_uno_frame / task_hmi_* */
 
-#include "app_bp.h"            /* app_init / app_loop */
+#include "app_bp.h"            /* app_init / app_loop / bp_resync */
+#include "canopen_app.h"       /* canopen_app_init / canopen_app_process */
+#include "sys_wdt.h"            /* IWDG 看门狗监督服务 */
+#include "screen_watch.h"       /* 屏在线探测与重握手 */
+#include "node_status.h"        /* 统一诊断快照（§2.2，非侵入：仅读取既有全局）*/
+#include "hmi_dacai.h"          /* hmi_get_screen / hmi_beep（血压屏驱动） */
 
 /* 血氧屏波特率：需与 SPO2_Hospital.tftprj 的 DeviceBaudRate(=7=115200) 一致 */
 #define SCREEN_BAUD  115200u
@@ -84,10 +89,40 @@ int main(void)
     app_init();
     dbg_puts("HMI: BP screen on USART3 @9600 (hmi_dacai); HKB-08B+ on UART5 @115200\r\n");
 
+    /* ---- CANopen Node-A：bxCAN + 协议栈，上电自主进入 OPERATIONAL ---- */
+    if (canopen_app_init() != 0u) {
+        dbg_puts("CANopen: Node-A init FAILED!\r\n");
+    } else {
+        dbg_puts("CANopen: Node-A init OK (500k, nodeId=1)\r\n");
+    }
+
     dbg_puts("waiting for frames...\r\n");
+
+    /* 所有外设初始化完成后才启动看门狗：IWDG 一旦使即便开始倒数，启动期不可被误咬。
+     * 喂狗只发生在主循环（见下方 while 顶部），外设离线不会停喂，故不会误复位。 */
+    WDT_Init();
+    dbg_puts("IWDG: enabled (supervise main loop only). reset_reason=");
+    dbg_puts(WDT_ResetReasonName());
+    dbg_puts("\r\n");
+
+    /* 屏在线探测与重握手：注册两块屏的探活/报警/重握手回调。
+     *   探测周期 1000ms / 响应超时 150ms / 失联阈值 3（可调）/ 离线蜂鸣报警。
+     *   回调里的指令函数（hmi_get_screen/HMI_GetScreen 等）均为非阻塞组帧，安全可反复调用。 */
+    screen_watch_init();
+    screen_watch_register(SCREEN_ID_BP,   "BP",
+                          hmi_get_screen, hmi_beep,  bp_resync);
+    screen_watch_register(SCREEN_ID_SPO2, "SPO2",
+                          HMI_GetScreen,  HMI_Beep,  spo2_resync);
+    dbg_puts("ScreenWatch: BP/SPO2 online-detect armed (probe=1000ms timeo=150ms miss=3)\r\n");
+
+    /* 统一诊断快照：上电自增 boot_id（须在 WDT/screen_watch 之后调用，确保 g_reset_reason 已定）。
+     * 仅做一次；不影响任何既有逻辑，只是让 node_status_t.boot_id 可追溯启动代次。 */
+    node_status_init();
 
     while (1)
     {
+        WDT_Feed();             /* 看门狗喂狗：每轮主循环到达此处即视为系统存活、已向前推进 */
+        screen_watch_tick();    /* 屏在线探测：发查询 / 判定失联 / 重握手 / 离线蜂鸣 */
         /* 每秒一次心跳：确认程序在跑、时钟正确，并打印关键计数 */
         if (millis() - t_hb >= 1000)
         {
@@ -157,6 +192,14 @@ int main(void)
             }
 #endif /* DEBUG_PPG */
 
+            /* 统一诊断快照（§2.2 非侵入实现）：聚合各模块健康状态，独立一行输出。
+             * 仅新增打印，不改任何既有心跳内容。如需统一口径，可后续用其字段替换上面的散装打印。 */
+            {
+                node_status_t ns;
+                node_status_snapshot(&ns);
+                node_status_dump(&ns);
+            }
+
             dbg_rtc();              /* MCU 软 RTC：用于对照两块屏的时间 */
             dbg_puts("\r\n");
         }
@@ -174,5 +217,8 @@ int main(void)
 
         /* ===== 血压子系统（血压屏 + 血压传感器） ===== */
         app_loop();             /* 处理传感器环形缓冲、软 RTC、血压屏刷新 */
+
+        /* ===== CANopen 协议栈周期处理 + TPDO 上报 Gateway-C ===== */
+        canopen_app_process();
     }
 }

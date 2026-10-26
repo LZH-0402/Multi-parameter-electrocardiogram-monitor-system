@@ -49,6 +49,11 @@ void task_hmi_value(void);  /* 数值/状态刷新：每 400ms（内含报警判
 void task_hmi_trend(void);
 void task_clock(void);      /* 软 RTC：每秒推进，并周期性同步到屏 */
 
+/* 屏在线探测重握手：把 MCU 侧保存的趋势历史副本"重发全部历史"到血氧屏趋势曲线。
+ *   分片回放（时间门控）避免阻塞主循环；作为 screen_watch 的 resync 回调，
+ *   返回 1=完成，0=进行中。 */
+uint8_t spo2_resync(void);
+
 /* 血氧侧软 RTC 读写（供诊断打印 / 血压页改时间后同步两屏使用）。
    get：读出当前年月日时分秒；set：直接改写并把新时间立刻写进血氧屏
    （入参越界时忽略；两屏共用一个 g_rtc_epoch_tick 基准）。 */
@@ -56,5 +61,10 @@ void spo2_rtc_get(uint16_t *y, uint8_t *mon, uint8_t *day,
                   uint8_t *hh, uint8_t *mi, uint8_t *ss);
 void spo2_rtc_set(uint16_t y, uint8_t mon, uint8_t day,
                   uint8_t hh, uint8_t mi, uint8_t ss);
+
+/* 把软 RTC 日历换算成 Unix epoch 秒（1970-01-01 00:00:00 UTC 起算），
+ * 供 CANopen 对象 2100:01 上送"UTC epoch 秒"。不含 SPO2_RTC_OFFSET_SEC 屏显补偿，
+ * 用 MCU 内部真实走时，与《MPM_统一数据字典_v0.1》2100:01 对齐。 */
+uint32_t spo2_rtc_get_epoch(void);
 
 #endif /* __APP_BO_H */

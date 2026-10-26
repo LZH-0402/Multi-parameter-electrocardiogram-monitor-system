@@ -157,7 +157,25 @@
 #define PRB_TXT_PROBE       13
 #define PRB_TXT_UPD_TIME    14
 #define PRB_TXT_QUALITY     15
-#define PRB_BAR_QUALITY     16  /* 进度条 0~100 */
+#define PRB_BAR_QUALITY     16  /* 进度条 0~100（宽进度条给"量"；与下方 6 段图标互补） */
+
+/* 信号质量柱状图（6 段 RAG，颜色已烤进 PNG）：主界面(SCR_MAIN) 与探头状态页(SCR_PROBE)
+ * 各放一套叠放的 image 控件，ID 同为 50~55，按画面 SCR 区分；MCU 用 HMI_SetControlVisible
+ * 只显示当前档位那一张、隐藏其余（quality_0 = 全暗 = 全灭）。
+ *   0=全暗 1=红 2=红 3=黄 4=绿 5=全绿；SQI 每 20% 一档（见 app_bloodoxygen.c sqi_to_seg）。
+ * 驱动无 HMI_SetIcon，故用"图标显隐"换色——.tft 里 6 张叠放在同一坐标即可。 */
+#define MAIN_SQI_ICON0  50
+#define MAIN_SQI_ICON1  51
+#define MAIN_SQI_ICON2  52
+#define MAIN_SQI_ICON3  53
+#define MAIN_SQI_ICON4  54
+#define MAIN_SQI_ICON5  55
+#define PRB_SQI_ICON0  50
+#define PRB_SQI_ICON1  51
+#define PRB_SQI_ICON2  52
+#define PRB_SQI_ICON3  53
+#define PRB_SQI_ICON4  54
+#define PRB_SQI_ICON5  55
 #define PRB_TXT_LAST_SPO2   17
 #define PRB_TXT_LAST_PR     18
 #define PRB_TXT_VALID_TIME  19

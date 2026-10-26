@@ -365,7 +365,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F40_41xxx,USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>..\USER;..\CORE;..\FWLIB\inc;..\HARDWARE;..\HARDWARE\SYS;..\HARDWARE\DEBUG;..\HARDWARE\USART;..\HARDWARE\HMI;..\HARDWARE\UNO</IncludePath>
+              <IncludePath>..\USER;..\CORE;..\FWLIB\inc;..\HARDWARE;..\HARDWARE\SYS;..\HARDWARE\DEBUG;..\HARDWARE\USART;..\HARDWARE\HMI;..\HARDWARE\UNO;..\HARDWARE\CANopen</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -624,6 +624,21 @@
               <FilePath>..\HARDWARE\SYS\sys.c</FilePath>
             </File>
             <File>
+              <FileName>sys_wdt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\SYS\sys_wdt.c</FilePath>
+            </File>
+            <File>
+              <FileName>screen_watch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\SYS\screen_watch.c</FilePath>
+            </File>
+            <File>
+              <FileName>node_status.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\SYS\node_status.c</FilePath>
+            </File>
+            <File>
               <FileName>debug.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\DEBUG\debug.c</FilePath>
@@ -667,6 +682,86 @@
               <FileName>bp_sensor.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\bp_sensor.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>CANopen</GroupName>
+          <Files>
+            <File>
+              <FileName>canopen_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\canopen_app.c</FilePath>
+            </File>
+            <File>
+              <FileName>CO_driver.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\CO_driver.c</FilePath>
+            </File>
+            <File>
+              <FileName>OD.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\OD.c</FilePath>
+            </File>
+            <File>
+              <FileName>CANopen.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\CANopen.c</FilePath>
+            </File>
+            <File>
+              <FileName>CO_ODinterface.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\301\CO_ODinterface.c</FilePath>
+            </File>
+            <File>
+              <FileName>CO_NMT_Heartbeat.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\301\CO_NMT_Heartbeat.c</FilePath>
+            </File>
+            <File>
+              <FileName>CO_HBconsumer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\301\CO_HBconsumer.c</FilePath>
+            </File>
+            <File>
+              <FileName>CO_Emergency.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\301\CO_Emergency.c</FilePath>
+            </File>
+            <File>
+              <FileName>CO_fifo.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\301\CO_fifo.c</FilePath>
+            </File>
+            <File>
+              <FileName>CO_SDOserver.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\301\CO_SDOserver.c</FilePath>
+            </File>
+            <File>
+              <FileName>CO_TIME.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\301\CO_TIME.c</FilePath>
+            </File>
+            <File>
+              <FileName>CO_SYNC.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\301\CO_SYNC.c</FilePath>
+            </File>
+            <File>
+              <FileName>CO_PDO.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\301\CO_PDO.c</FilePath>
+            </File>
+            <File>
+              <FileName>CO_LEDs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\303\CO_LEDs.c</FilePath>
+            </File>
+            <File>
+              <FileName>CO_LSSslave.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CANopen\305\CO_LSSslave.c</FilePath>
             </File>
           </Files>
         </Group>

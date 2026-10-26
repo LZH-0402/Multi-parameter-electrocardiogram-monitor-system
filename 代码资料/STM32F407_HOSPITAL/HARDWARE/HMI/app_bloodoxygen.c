@@ -31,6 +31,8 @@
 #include "sys.h"        /* millis() */
 #include "app_bloodoxygen.h"
 #include "merge_cfg.h"  /* g_rtc_epoch_tick：两屏共用的软 RTC 基准 */
+#include "screen_watch.h" /* 屏在线探测与重握手：SCREEN_ID_SPO2 / screen_watch_touch */
+#include "debug.h"        /* dbg_*：SQI 图标调试用 */
 #include <stdio.h>
 #include <stdlib.h>     /* atoi */
 #include <string.h>
@@ -71,7 +73,13 @@ extern measurement_t g_meas;
 #define S_DUR_PFX     "\xBC\xE0\xBB\xA4\xCA\xB1\xBC\xE4"               /* 监护时间 */
 /* 报警限值前缀 */
 #define S_LIM_SPO2    "\xB1\xA8\xBE\xAF\xCF\xDE\xD6\xB5"               /* 报警限值 */
-#define S_LIM_PR      "\xB1\xA8\xBE\xAF\xB8\xDF\xCF\xDE"               /* 报警高限 */
+#define S_LIM_PR      "\xB1\xA8\xBE\xAF\xB8\xDF\xCF\xDE"
+#define S_STALE       "\xCA\xFD\xBE\xDD\xB3\xC2\xBE\xC9"       /* 数据陈旧 */
+
+/* 时效标注阈值（NodeA_未完成任务清单 §2.2：spo2/hr 时效标注）。
+ * 超过该时长无任何有效结果(SpO2 帧 或 PR)落地，即判"数据陈旧"，屏转 -- 不再伪装新值。
+ * 正常时 UNO 帧与 PR 峰检均远快于此（秒级以内），4s 可靠区分"链路/算法静默"。 */
+#define SPO2_STALE_MS  4000u               /* 报警高限 */
 /* 暂停弹窗提示语 */
 #define S_PAU_ASK     "\xB5\xB1\xC7\xB0\xBC\xE0\xBB\xA4\xD6\xD0\x2C\x20\xC8\xB7\xC8\xCF\xD4\xDD\xCD\xA3\xBC\xE0\xBB\xA4\x3F"
                                                                        /* 当前监护中, 确认暂停监护? */
@@ -85,6 +93,18 @@ extern measurement_t g_meas;
  * 1. 全局状态
  * ============================================================ */
 uint8_t g_paused = 0;                 /* 暂停监护（由屏通知翻转） */
+
+/* 时效标注（NodeA_未完成任务清单 §2.2）：当前展示值是否已"陈旧"。
+ *   仅当"未暂停 且 数值有效(result_valid=1)"时才计算年龄；暂停/无效不判陈旧。
+ *   同时顺带刷新 g_meas.age_ms（供诊断/快照）。返回 1=陈旧。
+ *   判定依据见 SPO2_STALE_MS：链路/算法静默超过阈值即视为陈旧。 */
+static uint8_t spo2_is_stale(void)
+{
+    if (g_paused || !g_meas.result_valid) return 0u;
+    uint32_t age = millis() - g_meas.result_time_ms;
+    g_meas.age_ms = age;
+    return (uint8_t)(age > SPO2_STALE_MS);
+}
 
 static uint8_t s_sound_on = 1;        /* 报警声音开关（设置页切换按钮） */
 static uint8_t s_bright_pct = 80;     /* 背光百分比，取值 10~100（设置页滑块） */
@@ -366,6 +386,35 @@ void spo2_rtc_get(uint16_t *y, uint8_t *mon, uint8_t *day,
     if (ss)  *ss  = (uint8_t)(s_sec_of_day % 60u);
 }
 
+/* 把当前软 RTC 日历换算成 Unix epoch 秒（1970-01-01 00:00:00 UTC 起算），
+ * 供 CANopen 对象 2100:01 上送"UTC epoch 秒"（见《CANopen_对象字典_v0.1》2100:01、
+ * 《MPM_统一数据字典_v0.1》2100:01）。
+ *   采用 MCU 内部真实走时(s_sec_of_day)，不含 SPO2_RTC_OFFSET_SEC 屏显补偿；
+ *   闰年规则含 100/400 整百年修正（2100 非闰年），覆盖 1970~2105 全区间。
+ *   返回 32 位值：2026-01-01 约为 1.767e9，远未溢出 u32（上限 ~4.29e9，约到 2106）。
+ * Gateway 据此把本节点时间戳对齐到统一时基，与 2100:02 的 uwTick 单调节拍配合，
+ * 既可得绝对时刻也能算相对时延。 */
+uint32_t spo2_rtc_get_epoch(void)
+{
+    static const uint16_t month_days[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
+    uint32_t days = 0u;
+    uint16_t y;
+    uint8_t  m;
+    int is_leap = ((s_year % 4u == 0u && s_year % 100u != 0u) || s_year % 400u == 0u) ? 1 : 0;
+
+    /* 1970-01-01 到 (s_year-01-01) 的整年天数 */
+    for (y = 1970; y < s_year; y++) {
+        days += ((y % 4u == 0u && y % 100u != 0u) || y % 400u == 0u) ? 366u : 365u;
+    }
+    /* 当年 1 月 .. (s_mon-1) 月天数 */
+    for (m = 1u; m < s_mon; m++) {
+        days += month_days[m - 1];
+        if (m == 2u && is_leap) days += 1u;
+    }
+    days += (uint32_t)(s_day - 1u);
+    return days * 86400u + s_sec_of_day;
+}
+
 /* 用户在血压屏"时间设置"页改完时间后，必须把血氧侧软 RTC 一起对齐，
    否则两块屏会各走各的（改一次就差几小时）。
    参数越界（年<2000、月>12、日>31、时>23、分/秒>59）时直接返回不改。 */
@@ -483,6 +532,16 @@ static void alm_update(void)
         return;
     }
 
+    /* 数据陈旧：数值虽"有效"但已长时间无新结果（链路/算法静默），
+     * 无法确认是否仍超阈，释放已激活报警并提示"数据陈旧"（不写报警记录）。 */
+    if (spo2_is_stale()) {
+        HMI_SetText(SCR_MAIN, MAIN_TXT_SPO2_ST, S_STALE);
+        HMI_SetText(SCR_MAIN, MAIN_TXT_PR_ST,   S_STALE);
+        s_alm_active[0] = 0u; s_alm_active[1] = 0u;
+        s_alm_pending_on[0] = 0u; s_alm_pending_on[1] = 0u;
+        return;
+    }
+
     alm_watch(0u,
               (uint8_t)((valid && g_meas.spo2 < s_spo2_low) ? 1u : 0u),
               g_meas.spo2,
@@ -560,6 +619,7 @@ void on_uno_frame(void)
         if (ok && est > 0 && est <= 220) {
             g_meas.pulse_rate     = est;
             s_pr_last_valid_ms    = millis();
+            g_meas.result_time_ms = millis();   /* 时效标注：新 PR 也刷新时间戳 */
 #if defined(DEBUG_PPG) && DEBUG_PPG
             g_pr_loss_streak      = 0;
 #endif
@@ -593,6 +653,10 @@ static int16_t s_frozen_spo2 = -1;
 static int16_t s_frozen_pr  = -1;
 static uint8_t s_frozen_sqi = 0;    /* 暂停时冻结显示的信号质量（最后一次有效值） */
 
+/* 信号质量柱状图：最近一次实际写屏的 SQI 与"是否点亮"，供切页/自愈补发时重放 */
+static uint8_t s_disp_sqi    = 0;
+static uint8_t s_bar_active  = 0;
+
 /* 切回某画面后屏会按控件默认属性重绘，需要把 MCU 负责的内容再补几次。
    s_resync_round>0 表示还要重发几轮，避免和屏重绘抢时序；
    另有周期性自愈补发（RESYNC_SELF_HEAL_MS），保证任何一次覆盖/丢失都能自动收敛。 */
@@ -605,6 +669,64 @@ static uint8_t  s_force_probe  = 0;   /* 强制下一轮把"探头已接入"整�
 
 /* 定义在第 6 节（趋势），这里先声明，供切页补发时调用 */
 static void trend_show_labels(uint8_t force);
+
+/* 信号质量 6 段 RAG 柱状图：主界面(SCR_MAIN) 与探头状态页(SCR_PROBE) 各有一套
+ * 叠放的 image 控件（quality_0..5.png，控件 ID 50~55），颜色已烤进 PNG
+ * （0=全暗/全灭 1=红 2=红 3=黄 4=绿 5=全绿）。MCU 用 HMI_SetControlVisible
+ * 只显示当前档位那一张、隐藏其余；active=0 / SQI=0 时显示 quality_0(全暗=全灭)。
+ * 本驱动无 HMI_SetIcon，故用"图标显隐"换色。另保留宽进度条 PRB_BAR_QUALITY
+ * 给"量"（非激活时归零->空）。 */
+static const uint16_t s_main_sqi_icon[6] = {
+    MAIN_SQI_ICON0, MAIN_SQI_ICON1, MAIN_SQI_ICON2,
+    MAIN_SQI_ICON3, MAIN_SQI_ICON4, MAIN_SQI_ICON5
+};
+static const uint16_t s_prb_sqi_icon[6] = {
+    PRB_SQI_ICON0, PRB_SQI_ICON1, PRB_SQI_ICON2,
+    PRB_SQI_ICON3, PRB_SQI_ICON4, PRB_SQI_ICON5
+};
+
+/* SQI(0~100) -> 图标档位(0~5)：0 特判为全灭；每 20% 一档 */
+static uint8_t sqi_to_seg(uint8_t sqi)
+{
+    if (sqi == 0u) return 0u;
+    if (sqi < 20u) return 1u;
+    if (sqi < 40u) return 2u;
+    if (sqi < 60u) return 3u;
+    if (sqi < 80u) return 4u;
+    return 5u;
+}
+
+/* 在某一画面上，只让 icons[level] 显示、其余 5 张隐藏 */
+static void hmi_show_sqi_level(uint16_t screen, const uint16_t *icons, uint8_t level)
+{
+    uint8_t i;
+    for (i = 0u; i < 6u; i++) {
+        HMI_SetControlVisible(screen, icons[i], (i == level) ? 1u : 0u);
+    }
+}
+
+static void hmi_update_sqi_bar(uint8_t sqi, uint8_t active)
+{
+    uint8_t level = active ? sqi_to_seg(sqi) : 0u;   /* 非激活 -> quality_0 全灭 */
+    /* 调试用：只在 level/active 变化时打印一次，避免 400ms 刷屏 */
+    {
+        static uint8_t s_last_level = 0xFF;
+        static uint8_t s_last_active = 0xFF;
+        if (level != s_last_level || active != s_last_active) {
+            s_last_level = level;
+            s_last_active = active;
+            dbg_puts("[SQI] active="); dbg_put_u32(active);
+            dbg_puts(" sqi=");         dbg_put_u32(sqi);
+            dbg_puts(" level=");        dbg_put_u32(level);
+            dbg_puts(" main_icon=");    dbg_put_u32(s_main_sqi_icon[level]);
+            dbg_puts("\r\n");
+        }
+    }
+    hmi_show_sqi_level(SCR_MAIN,  s_main_sqi_icon, level);
+    hmi_show_sqi_level(SCR_PROBE, s_prb_sqi_icon,  level);
+    /* 兼容旧宽进度条（探头状态页）：仍按 SQI 写满量程；非激活归零 -> 空(全灭) */
+    HMI_SetProgress(SCR_PROBE, PRB_BAR_QUALITY, active ? (uint32_t)sqi : 0u);
+}
 
 void task_hmi_value(void)
 {
@@ -622,6 +744,7 @@ void task_hmi_value(void)
         hmi_show_duration(1u);
         trend_show_labels(1u);       /* 趋势页最近值/时间刻度 */
         if (s_resync_alm) { alm_push_rows(); if (!s_resync_round) s_resync_alm = 0u; }
+        hmi_update_sqi_bar(s_disp_sqi, s_bar_active);  /* 切页重绘会隐藏图标，补发重放 */
         s_force_probe = 1u;
     }
 
@@ -633,48 +756,69 @@ void task_hmi_value(void)
         hmi_show_setup();
         hmi_show_duration(1u);
         trend_show_labels(1u);       /* 趋势页最近值/时间刻度 */
+        hmi_update_sqi_bar(s_disp_sqi, s_bar_active);  /* 自愈：重放柱状图 */
         s_force_probe = 1u;
     }
 
     if (now < t_val) return;
     t_val = now + 400u;
 
-    /* 仅在"未暂停且数据有效"时刷新冻结缓存；暂停期间缓存保持不变 */
-    if (!g_paused && g_meas.result_valid) {
+    /* 时效标注：先判定当前值是否陈旧（顺便刷新 g_meas.age_ms）。
+     * 陈旧 = 数值仍有效但已超过 SPO2_STALE_MS 无新结果落地（链路/算法静默）。 */
+    uint8_t stale = spo2_is_stale();
+    uint8_t eff_valid = (uint8_t)(g_meas.result_valid && !stale);
+    /* 信号质量"可显示"门控：必须探头已接入 且 数值有效(未陈旧)，
+       仅 result_valid 不够——曾出现"探头未接入"却 SQI=85，故显式加 probe_state。 */
+    uint8_t quality_active = (g_meas.probe_state != 0u) && eff_valid;
+
+    /* 仅在"未暂停且数据有效(含未陈旧)"时刷新冻结缓存；暂停/无效/陈旧期间保持不变 */
+    if (!g_paused && eff_valid) {
         s_frozen_spo2 = (int16_t)g_meas.spo2;
         s_frozen_pr  = (int16_t)g_meas.pulse_rate;
         s_frozen_sqi = g_meas.signal_quality;
     }
+
+    uint8_t disp_sqi;
+    uint8_t bar_active;
 
     if (g_paused) {
         /* 暂停：保留暂停前的最后一次有效值（不再显示 --） */
         if (s_frozen_spo2 >= 0) {
             snprintf(s[0], sizeof(s[0]), "%d", (int)s_frozen_spo2);
             snprintf(s[1], sizeof(s[1]), "%d", (int)s_frozen_pr);
+            disp_sqi   = s_frozen_sqi;
+            bar_active = 1u;          /* 冻结有效值：柱状图保留冻结质量 */
         } else {
             strcpy(s[0], "--");
             strcpy(s[1], "--");
+            disp_sqi   = 0u;
+            bar_active = 0u;          /* 从未有有效值：柱状图全灭 */
         }
-    } else if (!g_meas.result_valid) {
+        snprintf(s[2], sizeof(s[2]), "%d", (int)disp_sqi);
+    } else if (!quality_active) {
+        /* 探头未接入 / 无效 / 数据陈旧：一律显示 --，柱状图全灭（含 SQI=0） */
         strcpy(s[0], "--");
         strcpy(s[1], "--");
+        strcpy(s[2], "--");
+        disp_sqi   = 0u;
+        bar_active = 0u;
     } else {
         snprintf(s[0], sizeof(s[0]), "%d", (int)g_meas.spo2);
         snprintf(s[1], sizeof(s[1]), "%d", (int)g_meas.pulse_rate);
+        snprintf(s[2], sizeof(s[2]), "%d", (int)g_meas.signal_quality);
+        disp_sqi   = g_meas.signal_quality;
+        bar_active = 1u;
     }
-    /* 暂停时信号质量也取冻结值：暂停期间 USART6 中断里的 UNO_ParseByte 仍在跑，
-       会按 pl[8] 把 g_meas.signal_quality 写成 0/100（UNO SpO2 短暂返回 0 时即为 0），
-       导致暂停屏露出 0。用冻结值后保留暂停前最后一次有效质量。 */
-    snprintf(s[2], sizeof(s[2]), "%d",
-             (int)(g_paused ? s_frozen_sqi : g_meas.signal_quality));
 
     HMI_SetText(SCR_MAIN, MAIN_TXT_SPO2,    s[0]);
     HMI_SetText(SCR_MAIN, MAIN_TXT_PR,      s[1]);
     HMI_SetText(SCR_MAIN, MAIN_TXT_QUALITY, s[2]);
 
-    /* 探头状态页的质量进度条 */
-    HMI_SetProgress(SCR_PROBE, PRB_BAR_QUALITY,
-                    g_paused ? 0u : (uint32_t)g_meas.signal_quality);
+    /* 探头状态页：5 段 RAG 柱状图（SQI=0 或 探头未接入 → 全灭）。
+       兼容旧单进度条 PRB_BAR_QUALITY 仍按 SQI 写满量程；若 .tft 已删该控件屏会忽略。 */
+    s_disp_sqi   = disp_sqi;
+    s_bar_active = bar_active;
+    hmi_update_sqi_bar(disp_sqi, bar_active);
 
     /* 报警限值文案（13/15）：设置页改过阈值才会重发 */
     hmi_show_limits(0u);
@@ -715,6 +859,18 @@ static uint16_t s_trd_count = 150u;   /* 当前窗口点数：30 / 150 / 900 */
 static uint8_t  s_trend_sel = 2u;     /* 1=1分钟 2=5分钟 3=30分钟（按钮选中态） */
 static uint32_t s_trd_min_shown = 0xFFFFFFFFu;  /* 上次写进屏的刻度分钟值，只有整分才重写 */
 
+/* 屏在线探测重握手用：MCU 侧保存的趋势历史副本，便于屏断开/重启后"重发全部历史"。
+ *   覆盖最大窗口（30 分钟 @2s = 900 点）；环形存储，最新的在写入位置之前。 */
+#define SPO2_HIST_MAX  900u
+static uint16_t s_hist_spo2[SPO2_HIST_MAX];
+static uint16_t s_hist_pr[SPO2_HIST_MAX];
+static uint16_t s_hist_cnt = 0;      /* 已存点数（<= MAX） */
+static uint16_t s_hist_head = 0;     /* 下一个写入位置（环形） */
+/* 重握手回放状态 */
+static uint16_t s_replay_idx = 0;    /* 已回放点数 */
+static uint8_t  s_replay_on  = 0;    /* 回放进行中标志 */
+static uint32_t s_replay_tick = 0;   /* 上次回放分片时刻（时间门控） */
+
 /* 趋势页的"非曲线"文案：左列最近值 10/11 + 曲线下方时间刻度 15..18。
    force=1 无条件整轮重发（切到趋势页 / 切换时段后屏会按默认属性重绘，必须补）。 */
 static void trend_show_labels(uint8_t force)
@@ -738,7 +894,7 @@ static void trend_show_labels(uint8_t force)
             HMI_SetText(SCR_TREND, TRD_TXT_LAST_SPO2, b);
             HMI_SetText(SCR_TREND, TRD_TXT_LAST_PR,   b);
         }
-    } else if (!g_meas.result_valid) {
+    } else if (!g_meas.result_valid || spo2_is_stale()) {
         strcpy(b, "--");
         HMI_SetText(SCR_TREND, TRD_TXT_LAST_SPO2, b);
         HMI_SetText(SCR_TREND, TRD_TXT_LAST_PR,   b);
@@ -773,12 +929,18 @@ void task_hmi_trend(void)
     trend_show_labels(0u);             /* 最近值 / 时间刻度 */
 
     if (g_paused) return;              /* 暂停时不记录 */
-    if (!g_meas.result_valid) return;  /* 无效时不留洞 */
+    if (!g_meas.result_valid || spo2_is_stale()) return;  /* 无效/陈旧时不留洞 */
 
     v[0] = (uint16_t)g_meas.spo2;
     v[1] = (uint16_t)g_meas.pulse_rate;
     HMI_HistorySampleU16(SCR_TREND, TRD_GRAPH_SPO2, &v[0], 1);
     HMI_HistorySampleU16(SCR_TREND, TRD_GRAPH_PR,   &v[1], 1);
+
+    /* 存本地历史副本（供屏在线探测重握手"重发全部历史"） */
+    s_hist_spo2[s_hist_head] = v[0];
+    s_hist_pr[s_hist_head]   = v[1];
+    s_hist_head = (uint16_t)((s_hist_head + 1u) % SPO2_HIST_MAX);
+    if (s_hist_cnt < SPO2_HIST_MAX) s_hist_cnt++;
 }
 
 /* ============================================================
@@ -881,6 +1043,7 @@ void NotifyButton(uint16_t screen_id, uint16_t ctrl_id, uint8_t state)
 /* 画面切换回调。屏每次跳转都会按控件默认属性重绘，这里安排"MCU 负责内容"的整体补发。 */
 void NotifyScreen(uint16_t screen_id)
 {
+    screen_watch_touch(SCREEN_ID_SPO2);   /* 屏在线探测：B1 01 回复到达，证明血氧屏在线 */
     if (screen_id == SCR_MAIN || screen_id == SCR_PAUSE || screen_id == SCR_SETUP ||
         screen_id == SCR_TREND || screen_id == SCR_ALARM || screen_id == SCR_PROBE) {
         request_resync(4u, 120u);
@@ -978,4 +1141,53 @@ void app_hmi_init(void)
     s_resync_round = 0u;      /* 开机时不需要补发轮次 */
     s_resync_alm   = 0u;
     s_force_probe  = 0u;
+}
+
+/* ============================================================
+ * 屏在线探测重握手（screen_watch 的 resync 回调）—— 血氧屏
+ * ------------------------------------------------------------
+ * 血氧屏掉线/重启后，趋势曲线（屏内 historygraph）内容丢失。
+ * 这里把 MCU 侧保存的历史副本"重发全部历史"回灌到趋势曲线；同时重发趋势页文案
+ * （最近值/时间刻度，由 trend_show_labels 负责）。主界面数值由 task_hmi_value()
+ * 每 400ms 持续刷新，无需在此重复。
+ *
+ * 分片回放（每 50ms 最多 6 点），避免一次性发几百帧阻塞主循环、挤占 PPG 波形带宽。
+ * 返回 1=完成，0=进行中。
+ * ============================================================ */
+uint8_t spo2_resync(void)
+{
+    uint32_t now = millis();
+    uint16_t start, sent;
+
+    if (!s_replay_on) {
+        /* 启动回放：先重发趋势页文案（最近值/时间刻度），再从头灌历史 */
+        trend_show_labels(1u);
+        s_replay_idx = 0;
+        s_replay_on  = 1;
+        s_replay_tick = now;
+        return 0u;   /* 本 tick 仅做初始化 */
+    }
+
+    /* 时间门控：每 50ms 最多回放若干点，避免刷屏洪泛 */
+    if ((int32_t)(now - s_replay_tick) < 50) return 0u;
+    s_replay_tick = now;
+
+    start = (uint16_t)((s_hist_head + SPO2_HIST_MAX - s_hist_cnt) % SPO2_HIST_MAX);
+    sent = 0;
+    while (s_replay_idx < s_hist_cnt && sent < 6u) {
+        uint16_t v[2];
+        uint16_t src = (uint16_t)((start + s_replay_idx) % SPO2_HIST_MAX);
+        v[0] = s_hist_spo2[src];
+        v[1] = s_hist_pr[src];
+        HMI_HistorySampleU16(SCR_TREND, TRD_GRAPH_SPO2, &v[0], 1);
+        HMI_HistorySampleU16(SCR_TREND, TRD_GRAPH_PR,   &v[1], 1);
+        s_replay_idx++;
+        sent++;
+    }
+
+    if (s_replay_idx >= s_hist_cnt) {
+        s_replay_on = 0;
+        return 1u;   /* 全部历史重发完成 */
+    }
+    return 0u;       /* 还有剩余，下个 tick 继续 */
 }

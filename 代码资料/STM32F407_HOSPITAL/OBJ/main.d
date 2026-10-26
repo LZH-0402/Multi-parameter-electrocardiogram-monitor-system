@@ -44,3 +44,34 @@
 ..\obj\main.o: ..\HARDWARE\UNO\uno.h
 ..\obj\main.o: ..\HARDWARE\HMI\app_bloodoxygen.h
 ..\obj\main.o: ..\HARDWARE\app_bp.h
+..\obj\main.o: ..\HARDWARE\CANopen\canopen_app.h
+..\obj\main.o: ..\HARDWARE\CANopen\CANopen.h
+..\obj\main.o: ..\HARDWARE\CANopen\301/CO_driver.h
+..\obj\main.o: F:\Program Files\Keil_v514\ARM\ARMCC\Bin\..\include\string.h
+..\obj\main.o: ..\HARDWARE\CANopen\301/CO_config.h
+..\obj\main.o: ..\HARDWARE\CANopen\CO_driver_target.h
+..\obj\main.o: F:\Program Files\Keil_v514\ARM\ARMCC\Bin\..\include\stddef.h
+..\obj\main.o: F:\Program Files\Keil_v514\ARM\ARMCC\Bin\..\include\stdbool.h
+..\obj\main.o: ..\HARDWARE\CANopen\301/CO_ODinterface.h
+..\obj\main.o: ..\HARDWARE\CANopen\301/CO_NMT_Heartbeat.h
+..\obj\main.o: ..\HARDWARE\CANopen\301/CO_Emergency.h
+..\obj\main.o: ..\HARDWARE\CANopen\301/CO_HBconsumer.h
+..\obj\main.o: ..\HARDWARE\CANopen\301/CO_Node_Guarding.h
+..\obj\main.o: ..\HARDWARE\CANopen\301/CO_SDOserver.h
+..\obj\main.o: ..\HARDWARE\CANopen\301/CO_SDOclient.h
+..\obj\main.o: ..\HARDWARE\CANopen\301/CO_fifo.h
+..\obj\main.o: ..\HARDWARE\CANopen\301/CO_SYNC.h
+..\obj\main.o: ..\HARDWARE\CANopen\301/CO_PDO.h
+..\obj\main.o: ..\HARDWARE\CANopen\301/CO_TIME.h
+..\obj\main.o: ..\HARDWARE\CANopen\303/CO_LEDs.h
+..\obj\main.o: ..\HARDWARE\CANopen\304/CO_GFC.h
+..\obj\main.o: ..\HARDWARE\CANopen\304/CO_SRDO.h
+..\obj\main.o: ..\HARDWARE\CANopen\305/CO_LSSslave.h
+..\obj\main.o: ..\HARDWARE\CANopen\305/CO_LSS.h
+..\obj\main.o: ..\HARDWARE\CANopen\305/CO_LSSmaster.h
+..\obj\main.o: ..\HARDWARE\CANopen\309/CO_gateway_ascii.h
+..\obj\main.o: ..\HARDWARE\CANopen\extra/CO_trace.h
+..\obj\main.o: ..\HARDWARE\SYS\sys_wdt.h
+..\obj\main.o: ..\HARDWARE\SYS\screen_watch.h
+..\obj\main.o: ..\HARDWARE\SYS\node_status.h
+..\obj\main.o: ..\HARDWARE\hmi_dacai.h

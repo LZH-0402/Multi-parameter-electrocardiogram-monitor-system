@@ -40,3 +40,4 @@
 ..\obj\app_bp.o: ..\HARDWARE\app_bp.h
 ..\obj\app_bp.o: ..\USER\merge_cfg.h
 ..\obj\app_bp.o: ..\HARDWARE\HMI\app_bloodoxygen.h
+..\obj\app_bp.o: ..\HARDWARE\SYS\screen_watch.h

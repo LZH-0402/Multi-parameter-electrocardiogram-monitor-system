@@ -21,6 +21,7 @@
 #include "dc_hmi.h"       /* HMI_RxByte */
 #include "uno.h"          /* UNO_ParseByte */
 #include "merge_cfg.h"
+#include "canopen_app.h"  /* canopen_app_CAN_interrupt */
 
 /** @addtogroup Template_Project
   * @{
@@ -142,6 +143,30 @@ void UART5_IRQHandler(void)
         uint8_t b = (uint8_t)USART_ReceiveData(UART5);
         on_uart_rx(UART5, b);
     }
+}
+
+/**
+  * @brief  CAN1 接收 FIFO0 中断。统一转调 CO_CANinterrupt（它内部一并处理 TX/SCE）。
+  */
+void CAN1_RX0_IRQHandler(void)
+{
+    canopen_app_CAN_interrupt();
+}
+
+/**
+  * @brief  CAN1 发送完成中断。统一转调 CO_CANinterrupt。
+  */
+void CAN1_TX_IRQHandler(void)
+{
+    canopen_app_CAN_interrupt();
+}
+
+/**
+  * @brief  CAN1 状态改变 / 错误中断(SCE)。统一转调 CO_CANinterrupt。
+  */
+void CAN1_SCE_IRQHandler(void)
+{
+    canopen_app_CAN_interrupt();
 }
 
 /* USART6_IRQHandler（UNO 血氧传感器）定义见 HARDWARE/USART/usart.c，此处不重复定义 */

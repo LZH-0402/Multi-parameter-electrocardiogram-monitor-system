@@ -46,6 +46,7 @@
 #include "app_bp.h"
 #include "merge_cfg.h"
 #include "app_bloodoxygen.h"   /* spo2_rtc_set：血压页改时间后同步血氧侧软 RTC */
+#include "screen_watch.h"       /* 屏在线探测与重握手：SCREEN_ID_BP / screen_watch_touch */
 /* g_hmi_cur_screen(当前可见页) 的 extern 由上方 #include "hmi_dacai.h" 提供，
  * 时钟改成屏内 RTC 后不再参与时钟刷新，仅作状态记录/诊断用。 */
 
@@ -164,8 +165,7 @@ static uint8_t s_dma0_buf[DMA_RX_BUF_SIZE];   /* 血压传感器 UART5_RX (DMA1_
 #endif
 
 
-typedef enum {                     /* 测量状态机：空闲 / 测量中 / 停止中 */
-    ST_IDLE = 0,          ST_MEASURING,         ST_STOPPING       } bp_state_t;
+/* bp_state_t 已移至 app_bp.h（对外类型）；此处仅保留内部状态变量 */
 static bp_state_t s_state = ST_IDLE;          /* 当前状态 */
 
 static uint32_t s_rtc_base_tick = 0;   /* 软 RTC 基准 tick(ms) */   static uint32_t s_rtc_base_sec  = 0;   /* 基准时刻的当日秒 */   static uint16_t s_year = 2026;        /* 软 RTC 年 */
@@ -175,13 +175,12 @@ static uint32_t s_sec_of_day = 0;      /* 软 RTC 当日已过秒数，0~86399 *
 static uint32_t s_meas_start_tick = 0;   /* 本次测量起始 tick(ms) */
 static uint16_t s_elapsed_sec = 0;       /* 本次测量已用秒数 */
 
-/* 最近一次结果（idle 页“上次结果”与结果页的数据源） */
-typedef struct {
-    uint8_t  valid;            uint16_t sys, dia;      /* valid:1=有效 0=无结果；sys/dia:收缩/舒张压 mmHg */
-    uint8_t  pr;                                       /* 脉率 bpm */
-    uint8_t  irregular;                                /* 心律不齐标记：0=齐 1=不齐 */
-    uint16_t year; uint8_t mon, day, hour, min;   } bp_last_t;   /* 测量时刻 年/月/日/时/分 */
+/* bp_last_t 已移至 app_bp.h（对外类型）；s_last 为内部最近结果（idle 页“上次结果”与结果页的数据源） */
 static bp_last_t s_last;
+
+/* 对外访问器：供 CANopen 上报生产者读取最近血压结果 / 状态机状态（调用方只读副本） */
+bp_last_t bp_last_get(void) { return s_last; }
+bp_state_t bp_state_get(void) { return s_state; }
 
 /* 历史记录（环形缓冲元素，容量 HIST_CAP） */
 typedef struct {
@@ -293,8 +292,9 @@ static void hmi_rx_frame(const uint8_t *f, uint8_t len)
     if (len < 5) return;
     if (f[1] != 0xB1) return;                sub = f[2];
     if (sub == 0x01) {                           uint16_t scr = ((uint16_t)f[3] << 8) | f[4];
-        g_hmi_cur_screen = scr;   /* 屏应答“当前页”，同步当前可见页（含屏自行切页的情况） */
+        g_hmi_cur_screen = scr;   /* 屏应答"当前页"，同步当前可见页（含屏自行切页的情况） */
         hmi_fire_page_changed(scr);  /* 触发切页通知（当前未注册回调） */
+        screen_watch_touch(SCREEN_ID_BP);  /* 探活：屏对查询 EE B1 01 的回复到达 */
         dbg_str(">>> SCREEN GET screen=");
         dbg_u32(scr);
         dbg_str("\r\n");
@@ -1130,8 +1130,7 @@ void app_loop(void)
 {
     static uint32_t alive_last = 0;
     static uint32_t sec_last = 0;
-    static uint32_t s_screen_poll_tick = 0;   /* 周期回读屏当前页，同步 g_hmi_cur_screen */
-	
+
     while (s_q3_tail != s_q3_head) 
 	{
         uint8_t b = s_q3[s_q3_tail];
@@ -1158,13 +1157,8 @@ void app_loop(void)
         dbg_str("s] alive\r\n");
     }
 
-    /* 周期回读屏当前页(B1 01)，让 g_hmi_cur_screen 与屏实际显示的页保持一致
-     * （屏用“切页型”按钮自行跳页时，MCU 无法预知）；3 秒周期，仅作状态记录/诊断用。 */
-    if (g_tick - s_screen_poll_tick >= 3000u)
-    {
-        s_screen_poll_tick = g_tick;
-        hmi_get_screen();
-    }
+    /* 注：原 3 秒回读屏当前页(B1 01)已移除 —— 改由 screen_watch 每 1s 发查询统一承担，
+     *   既探活又同步 g_hmi_cur_screen（屏回复 B1 01 时 hmi_rx_frame 已更新它）。 */
 
     /* 整秒：先推进软 RTC，再立刻用 EE 81 把新时间写给血压屏的 RTC 控件。
      *
@@ -1278,6 +1272,7 @@ static void on_bp_frame(uint8_t cmd, const uint8_t *data, uint8_t len)
         dbg_str("\r\n");
 
         s_last.valid = 1;
+        s_last.valid_tick = uwTick;   /* D11：记录测量完成时刻，供 CAN 有效位时效判断 */
         s_last.sys = r.systolic; s_last.dia = r.diastolic;
         s_last.pr  = r.heart_rate; s_last.irregular = r.irregular;
         s_last.year = s_year; s_last.mon = s_month; s_last.day = s_day;
@@ -1453,3 +1448,50 @@ void on_uart_rx_idle(USART_TypeDef *u)
     DMA_Cmd(st, ENABLE);
 }
 #endif
+
+/* ============================================================
+ * 屏在线探测重握手（screen_watch 的 resync 回调）
+ * ------------------------------------------------------------
+ * 血压屏掉线/重启后，屏上内容丢失（RTC、状态栏、结果、历史等）。
+ * 此处只"恢复显示状态"，绝不重新启动测量（绝不重发 0xA0）——测量由用户按键触发，
+ * 自动重发会导致屏一恢复就莫名开始测血压，既违背用户意图也存在临床风险。
+ *
+ * 做法：
+ *   1) 重发时钟（屏内 RTC 控件，所有页共用，EE 81）；
+ *   2) 重发公共状态栏；
+ *   3) 强制回到 MCU 记录的可见页（处理屏重启归零到页 0 的情况）；
+ *   4) 按当前页补刷动态内容；历史页调用 hist_show_page() 即"重发全部历史记录"。
+ * 一次性完成，返回 1。
+ * ============================================================ */
+uint8_t bp_resync(void)
+{
+    clock_sync_rtc();                       /* 时钟全局重发（所有页共用屏内 RTC） */
+    status_refresh();                       /* 公共状态栏刷新 */
+
+    /* 强制回到 MCU 记录的可见页：屏重启会归零到页 0，这里把它拉回原页 */
+    hmi_change_page(g_hmi_cur_screen);
+
+    switch (g_hmi_cur_screen) {
+    case HMI_SCREEN_IDLE:
+        idle_refresh();                     /* 上次结果 / 信息 */
+        break;
+    case HMI_SCREEN_RESULT:
+        if (s_last.valid) result_show();    /* 结果页：重发 SYS/DIA/PR + 分类提示 */
+        break;
+    case HMI_SCREEN_HISTORY:
+        hist_show_page();                   /* 重发全部历史记录表格 */
+        break;
+    case HMI_SCREEN_SETTINGS:
+        settings_show_time();               /* 设置页时间 */
+        bright_show();                      /* 亮度 */
+        break;
+    case HMI_SCREEN_MEASURING:
+    case HMI_SCREEN_STOPPING:
+        /* 测量/停止页：压力值由 on_bp_frame 持续刷新，这里仅补状态栏（已做） */
+        break;
+    default:
+        break;
+    }
+    return 1u;   /* 一次性完成 */
+}
+

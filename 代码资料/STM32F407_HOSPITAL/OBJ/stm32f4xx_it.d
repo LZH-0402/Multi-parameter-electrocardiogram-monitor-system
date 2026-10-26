@@ -40,3 +40,30 @@
 ..\obj\stm32f4xx_it.o: ..\USER\merge_cfg.h
 ..\obj\stm32f4xx_it.o: ..\HARDWARE\HMI\dc_hmi.h
 ..\obj\stm32f4xx_it.o: ..\HARDWARE\UNO\uno.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\canopen_app.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\CANopen.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\301/CO_driver.h
+..\obj\stm32f4xx_it.o: F:\Program Files\Keil_v514\ARM\ARMCC\Bin\..\include\string.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\301/CO_config.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\CO_driver_target.h
+..\obj\stm32f4xx_it.o: F:\Program Files\Keil_v514\ARM\ARMCC\Bin\..\include\stddef.h
+..\obj\stm32f4xx_it.o: F:\Program Files\Keil_v514\ARM\ARMCC\Bin\..\include\stdbool.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\301/CO_ODinterface.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\301/CO_NMT_Heartbeat.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\301/CO_Emergency.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\301/CO_HBconsumer.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\301/CO_Node_Guarding.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\301/CO_SDOserver.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\301/CO_SDOclient.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\301/CO_fifo.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\301/CO_SYNC.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\301/CO_PDO.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\301/CO_TIME.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\303/CO_LEDs.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\304/CO_GFC.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\304/CO_SRDO.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\305/CO_LSSslave.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\305/CO_LSS.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\305/CO_LSSmaster.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\309/CO_gateway_ascii.h
+..\obj\stm32f4xx_it.o: ..\HARDWARE\CANopen\extra/CO_trace.h
